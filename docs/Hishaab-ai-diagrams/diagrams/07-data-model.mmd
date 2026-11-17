@@ -1,0 +1,151 @@
+erDiagram
+    RAW_MESSAGE ||--o| PARSED_RECORD : "parsed into"
+    PARSE_TEMPLATE ||--o{ PARSED_RECORD : "used by"
+    PARSED_RECORD ||--o{ TRANSACTION_EVIDENCE : "proves"
+    TRANSACTION ||--|{ TRANSACTION_EVIDENCE : "has"
+    ACCOUNT ||--o{ TRANSACTION : "on"
+    MERCHANT ||--o{ TRANSACTION : "with"
+    MERCHANT ||--o{ MERCHANT_ALIAS : "known as"
+    CATEGORY ||--o{ TRANSACTION : "in"
+    CATEGORY ||--o{ CATEGORY : "parent of"
+    CATEGORY ||--o{ CATEGORY_RULE : "target of"
+    TRANSACTION ||--o{ REVIEW_ITEM : "raises"
+    RAW_MESSAGE ||--o{ USER_OVERRIDE : "anchors"
+    SCAN_RUN ||--o{ REVIEW_ITEM : "reports"
+    DEVICE ||--o{ RAW_MESSAGE : "uploaded"
+    CHAT_SESSION ||--o{ CHAT_MESSAGE : "contains"
+
+    RAW_MESSAGE {
+        string id PK "sha256 or Gmail msg id"
+        string source "SMS or EMAIL"
+        string sender
+        text body
+        timestamptz received_at
+        timestamptz ingested_at
+        string status "NEW PARSED IGNORED FAILED"
+        string ignore_reason
+        uuid device_id FK
+    }
+    PARSE_TEMPLATE {
+        uuid id PK
+        string bank
+        string sender_pattern
+        text regex
+        int version
+        bool active
+    }
+    PARSED_RECORD {
+        uuid id PK
+        string raw_message_id FK
+        uuid template_id FK "null if LLM"
+        string parser "TEMPLATE or LLM"
+        bigint amount_paise
+        string direction
+        string account_last4
+        string channel
+        string counterparty_raw
+        string ref_no
+        timestamptz txn_time
+        bigint balance_after_paise
+        float confidence
+    }
+    TRANSACTION {
+        uuid id PK
+        bigint amount_paise
+        string direction
+        timestamptz txn_time
+        uuid account_id FK
+        uuid merchant_id FK
+        uuid category_id FK
+        string category_source "USER RULE AI NONE"
+        float ai_confidence
+        string ai_model_version
+        string kind "SPEND INCOME TRANSFER REFUND CC_PAYMENT REVERSAL"
+        string status "CONFIRMED PENDING HIDDEN"
+        string ref_no
+        text note
+    }
+    TRANSACTION_EVIDENCE {
+        uuid transaction_id FK
+        uuid parsed_record_id FK
+        string match_method "REF WINDOW MANUAL"
+        float score
+    }
+    ACCOUNT {
+        uuid id PK
+        string bank "AXIS SBI SBI_CARD"
+        string type "SAVINGS CREDIT_CARD"
+        string last4
+        string nickname
+    }
+    MERCHANT {
+        uuid id PK
+        string name
+        string type "MERCHANT PERSON"
+        uuid default_category_id FK
+        bool always_ask
+    }
+    MERCHANT_ALIAS {
+        uuid merchant_id FK
+        string raw_name
+    }
+    CATEGORY {
+        uuid id PK
+        string name
+        uuid parent_id FK
+        string icon
+        string color_token
+    }
+    CATEGORY_RULE {
+        uuid id PK
+        string match_type "MERCHANT PERSON KEYWORD"
+        string match_value
+        uuid category_id FK
+        int priority
+    }
+    REVIEW_ITEM {
+        uuid id PK
+        string type "AMBIGUOUS_MATCH UNPARSED UNKNOWN_CATEGORY UNKNOWN_KIND LOW_CONFIDENCE BALANCE_GAP"
+        jsonb payload
+        string status "OPEN RESOLVED DISMISSED"
+        jsonb resolution
+        uuid scan_run_id FK
+        timestamptz resolved_at
+    }
+    USER_OVERRIDE {
+        uuid id PK
+        string raw_message_id FK
+        string field "CATEGORY KIND MERGE SPLIT NOTE HIDE"
+        jsonb value
+        timestamptz created_at
+    }
+    SCAN_RUN {
+        uuid id PK
+        timestamptz started_at
+        timestamptz finished_at
+        int sms_in
+        int emails_in
+        int txns_created
+        int txns_merged
+        int review_opened
+        int errors
+        string status
+    }
+    DEVICE {
+        uuid id PK
+        string name
+        string token_hash
+        timestamptz last_sync_at
+        string fcm_token
+    }
+    CHAT_SESSION {
+        uuid id PK
+        timestamptz created_at
+    }
+    CHAT_MESSAGE {
+        uuid id PK
+        uuid session_id FK
+        string role
+        text content
+        jsonb tool_calls
+    }

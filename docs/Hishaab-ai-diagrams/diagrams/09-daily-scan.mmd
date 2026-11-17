@@ -1,0 +1,19 @@
+sequenceDiagram
+    autonumber
+    participant S as Scheduler
+    participant M as mail
+    participant P as Pipeline
+    participant Q as review
+    participant R as report
+    participant N as notify (FCM)
+
+    S->>S: Cron fires (your scan time + 15 min)
+    S->>S: Take advisory lock
+    S->>M: Fetch bank emails since last run
+    M->>P: New raw emails
+    P->>P: Process any unprocessed SMS + emails
+    P->>Q: Open review items
+    P->>P: Balance check per account
+    S->>R: Build report for this run
+    R->>N: "12 new · ₹3,420 spent · 2 need review"
+    S->>S: Save scan_run, release lock

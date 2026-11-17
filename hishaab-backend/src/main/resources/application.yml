@@ -1,0 +1,43 @@
+spring:
+  application:
+    name: hishaab-backend
+  datasource:
+    url: ${HISHAAB_DB_URL:jdbc:postgresql://localhost:5432/hishaab}
+    username: ${HISHAAB_DB_USER:hishaab}
+    password: ${HISHAAB_DB_PASSWORD:}
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate          # H-3: schema only via Flyway
+    properties:
+      hibernate.jdbc.time_zone: UTC
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+  jackson:
+    time-zone: UTC
+
+server:
+  error:
+    include-stacktrace: never
+    include-message: never
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+  endpoint:
+    health:
+      show-details: never
+
+hishaab:
+  security:
+    basic-auth:
+      enabled: false
+      username: ${HISHAAB_DEV_USER:}
+      password: ${HISHAAB_DEV_PASSWORD:}
+
+logging:
+  level:
+    root: INFO

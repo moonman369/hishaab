@@ -1,0 +1,20 @@
+sequenceDiagram
+    autonumber
+    participant WM as WorkManager
+    participant W as Sync Worker
+    participant Inbox as SMS inbox
+    participant B as Backend
+
+    WM->>W: Start (scheduled time, network available)
+    W->>B: GET /device/config
+    B-->>W: Sender allowlist, scan time
+    W->>Inbox: Query SMS where date > cursor<br/>and sender in allowlist
+    Inbox-->>W: New bank SMS
+    loop Batches of 100
+        W->>W: id = sha256(sender + body + received_at)
+        W->>B: POST /ingest/sms [batch]
+        B-->>W: Accepted + already-seen IDs
+        W->>W: Move cursor to newest confirmed message
+    end
+    W->>W: Schedule next run for next scan time
+    W->>B: Report status (count, errors)

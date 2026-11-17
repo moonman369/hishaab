@@ -1,0 +1,10 @@
+flowchart TD
+    subgraph Prod["Production"]
+        G["Google OAuth<br/>(your email only)<br/>+ passkey via Google"] --> S1["Web: secure session cookie"]
+        G --> S2["Mobile: access + refresh token"]
+        DT["Device token<br/>(ingest only)"] --> W["Sync Worker"]
+        AT["API token<br/>(revocable)"] --> Scripts["Scripts / debugging"]
+    end
+    subgraph Dev["Dev profile only"]
+        PW["Email + password"]
+    end

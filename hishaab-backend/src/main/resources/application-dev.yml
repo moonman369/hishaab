@@ -1,0 +1,9 @@
+# Local development. Password login (temporary basic auth) is allowed only here and in tests.
+hishaab:
+  security:
+    basic-auth:
+      enabled: true
+
+logging:
+  level:
+    in.moonman.hishaab: DEBUG

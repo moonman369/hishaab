@@ -1,0 +1,13 @@
+flowchart TD
+    T["Transaction needs a category"] --> A{"You edited this<br/>transaction?"}
+    A -- yes --> U["Use your choice<br/>(source = user)"]
+    A -- no --> B{"Rule matches<br/>merchant / person?"}
+    B -- yes --> RL["Use rule<br/>(source = rule)"]
+    B -- no --> C{"Merchant marked<br/>'always ask'?"}
+    C -- yes --> RV["Review item"]
+    C -- no --> D["Ask Gemini<br/>(merchant, amount, channel,<br/>time, your categories,<br/>your past corrections)"]
+    D --> E{"Confidence<br/>high?"}
+    E -- yes --> AI["Apply, tag 'AI'<br/>(source = ai)"]
+    E -- no --> RV
+    RV --> F["You answer:<br/>'just this one' or 'always'"]
+    F -- always --> NR["Create / update rule<br/>+ offer to fix past txns"]

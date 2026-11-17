@@ -1,0 +1,9 @@
+stateDiagram-v2
+    [*] --> Open: pipeline is unsure
+    Open --> Resolved: you answer
+    Open --> Dismissed: you say "ignore"
+    Open --> AutoClosed: later data settles it<br/>(e.g. email brings the ref no.)
+    Resolved --> [*]
+    Dismissed --> [*]
+    AutoClosed --> [*]
+    Resolved --> Open: you undo

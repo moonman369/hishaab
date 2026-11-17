@@ -1,0 +1,11 @@
+flowchart LR
+    Screen["Screen"] --> Hook["TanStack Query hook"]
+    Hook --> Cache[("Query cache")]
+    Hook --> Client["packages/api client"]
+    Client --> API["Backend REST / SSE"]
+    API --> Client
+    Client --> Cache
+    Cache --> Screen
+    Edit["You change a category"] --> Mut["Mutation<br/>(optimistic update)"]
+    Mut --> Client
+    Mut --> Cache

@@ -1,0 +1,21 @@
+flowchart TB
+    subgraph Repo["hishaab (monorepo)"]
+        subgraph Apps["apps/"]
+            Web["web<br/>Vite + React"]
+            Mobile["mobile<br/>Expo + React Native<br/>+ Kotlin sync module"]
+        end
+        subgraph Pkgs["packages/"]
+            ApiPkg["api<br/>generated TS client + types"]
+            CorePkg["core<br/>money format, filter model,<br/>date helpers, category logic"]
+            Tokens["tokens<br/>colours, radii, spacing, type<br/>(dark + light)"]
+        end
+        Backend["backend/<br/>Spring Boot"]
+    end
+
+    Backend -- "OpenAPI spec" --> ApiPkg
+    ApiPkg --> Web
+    ApiPkg --> Mobile
+    CorePkg --> Web
+    CorePkg --> Mobile
+    Tokens -- "CSS variables" --> Web
+    Tokens -- "StyleSheet values" --> Mobile

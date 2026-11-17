@@ -1,0 +1,19 @@
+flowchart LR
+    Login["Login<br/>(Google)"] --> Home
+
+    subgraph Main["Main navigation<br/>(sidebar on web · bottom tabs on mobile)"]
+        Home["Dashboard"]
+        Txns["Transactions"]
+        Rev["Review"]
+        Chat["Chat"]
+        More["More"]
+    end
+
+    Txns --> Detail["Transaction detail<br/>+ source messages"]
+    Rev --> Detail
+    Home --> Txns
+    More --> Cats["Categories & rules"]
+    More --> Accts["Accounts"]
+    More --> Sync["Sync status<br/>& scan history"]
+    More --> Set["Settings<br/>(scan time, senders, theme)"]
+    Set --> Setup["Worker setup<br/>(mobile only)"]

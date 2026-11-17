@@ -1,0 +1,18 @@
+flowchart TB
+    Internet((Internet)) --> NX
+
+    subgraph VM["Oracle VM (Docker Compose)"]
+        NX["nginx<br/>TLS (Let's Encrypt)<br/>&lt;TBD&gt;.moonman.in"]
+        BE["backend<br/>Spring Boot container"]
+        PG[("postgres<br/>private network only")]
+        WEB["web static files"]
+        BK["backup job<br/>(nightly pg_dump)"]
+        NX -- "/api/*" --> BE
+        NX -- "/*" --> WEB
+        BE --> PG
+        BK --> PG
+    end
+
+    BK -- "encrypted dump" --> OS[("Oracle Object Storage")]
+    GH["GitHub Actions"] -- "build images, deploy" --> VM
+    GH -- "EAS Build → APK" --> APK["APK download"]

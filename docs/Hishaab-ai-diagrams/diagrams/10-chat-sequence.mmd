@@ -1,0 +1,21 @@
+sequenceDiagram
+    autonumber
+    actor You
+    participant UI as App / Web
+    participant C as chat module
+    participant G as Gemini
+    participant T as Tools (query module)
+    participant DB as Postgres (read-only role)
+
+    You->>UI: "How much did I spend on food in October vs September?"
+    UI->>C: POST /chat (SSE stream)
+    C->>G: Question + tool list + chat history
+    G-->>C: Call compare_periods(category=Food, Oct, Sep)
+    C->>T: compare_periods(...)
+    T->>DB: SQL (read-only)
+    DB-->>T: Rows
+    T-->>C: { oct: 812000, sep: 645000 }
+    C->>G: Tool result
+    G-->>C: Answer text
+    C-->>UI: Stream answer + "based on" filters
+    UI-->>You: "₹8,120 in Oct, ₹6,450 in Sep (+26%)"

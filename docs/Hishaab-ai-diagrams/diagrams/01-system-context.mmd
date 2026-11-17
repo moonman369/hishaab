@@ -1,0 +1,35 @@
+flowchart LR
+    subgraph Phone["Your Android phone"]
+        SMS[("SMS inbox")]
+        Worker["Sync Worker<br/>(Kotlin module)"]
+        App["Hishaab app<br/>(Expo / React Native)"]
+        SMS --> Worker
+    end
+
+    subgraph Cloud["External services"]
+        Gmail[("Gmail")]
+        Gemini["Gemini API<br/>(paid tier)"]
+        GAuth["Google Sign-In"]
+        FCM["Firebase Cloud<br/>Messaging"]
+    end
+
+    subgraph VM["Oracle VM — &lt;TBD&gt;.moonman.in"]
+        Nginx["Nginx<br/>(TLS, routing)"]
+        API["Hishaab Backend<br/>(Spring Boot)"]
+        DB[("Postgres")]
+        Web["Web app<br/>(static React build)"]
+        Nginx --> API
+        Nginx --> Web
+        API --> DB
+    end
+
+    Browser["Browser<br/>(laptop / phone)"]
+
+    Worker -- "raw bank SMS<br/>(device token)" --> Nginx
+    App -- "REST + SSE" --> Nginx
+    Browser -- "HTTPS" --> Nginx
+    API -- "read bank emails" --> Gmail
+    API -- "categorise / parse fallback / chat" --> Gemini
+    API -- "verify login" --> GAuth
+    API -- "daily report push" --> FCM
+    FCM --> App

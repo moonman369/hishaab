@@ -1,0 +1,16 @@
+flowchart LR
+    A["Raw message<br/>arrives"] --> B{"Seen this<br/>hash before?"}
+    B -- yes --> X1["Ignore<br/>(already stored)"]
+    B -- no --> C["Store in<br/>raw_message"]
+    C --> D{"Classify"}
+    D -- "OTP / promo /<br/>reminder / balance only" --> X2["Mark ignored<br/>(kept for audit)"]
+    D -- "failed / declined" --> X3["Mark failed<br/>(not counted)"]
+    D -- "completed txn" --> E{"Known bank<br/>template?"}
+    E -- yes --> F["Regex parse"]
+    E -- no --> G["LLM fallback parse<br/>(low confidence)"]
+    G --> R1["Review: confirm fields"]
+    F --> H["Normalise fields"]
+    R1 --> H
+    H --> I["Match / dedup"]
+    I --> J["Categorise"]
+    J --> K[("transaction<br/>+ evidence")]

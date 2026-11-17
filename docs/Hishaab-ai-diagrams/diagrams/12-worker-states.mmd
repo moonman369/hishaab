@@ -1,0 +1,11 @@
+stateDiagram-v2
+    [*] --> NeedsSetup
+    NeedsSetup --> Idle: SMS permission granted<br/>+ device registered
+    Idle --> Running: scan time / Sync now
+    Running --> Idle: success → schedule next run
+    Running --> Retrying: network or server error
+    Retrying --> Running: back-off (WorkManager)
+    Retrying --> Failed: too many retries
+    Failed --> Running: next scan time / Sync now
+    Idle --> NeedsSetup: permission revoked
+    Failed --> NeedsSetup: permission revoked

@@ -1,0 +1,9 @@
+# Production. No password login; real auth arrives with SPEC-050.
+hishaab:
+  security:
+    basic-auth:
+      enabled: false
+
+logging:
+  level:
+    in.moonman.hishaab: INFO

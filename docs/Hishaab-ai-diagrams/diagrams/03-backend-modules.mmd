@@ -1,0 +1,41 @@
+flowchart TB
+    subgraph Edge["Entry points"]
+        RestAPI["REST API<br/>(web + mobile)"]
+        IngestAPI["Ingest API<br/>(worker only)"]
+        Sched["Scheduler<br/>(daily job)"]
+        ChatAPI["Chat API<br/>(SSE stream)"]
+    end
+
+    subgraph Core["Core modules"]
+        Ingest["ingest<br/>store raw SMS / email"]
+        Mail["mail<br/>Gmail fetcher"]
+        Classify["classify<br/>is it a real txn?"]
+        Parse["parse<br/>templates + LLM fallback"]
+        Match["match<br/>dedup + linking"]
+        Categ["categorise<br/>rules + AI"]
+        Review["review<br/>clarification queue"]
+        Query["query<br/>filters, summaries"]
+        Chat["chat<br/>agent + tools"]
+        Report["report<br/>daily scan report"]
+    end
+
+    subgraph Support["Shared"]
+        Auth["auth"]
+        LLM["llm gateway<br/>(masking, logging)"]
+        Notify["notify (FCM)"]
+        Settings["settings"]
+    end
+
+    IngestAPI --> Ingest
+    Sched --> Mail --> Ingest
+    Ingest --> Classify --> Parse --> Match --> Categ
+    Match --> Review
+    Categ --> Review
+    Sched --> Report --> Notify
+    RestAPI --> Query
+    RestAPI --> Review
+    RestAPI --> Settings
+    ChatAPI --> Chat --> Query
+    Parse --> LLM
+    Categ --> LLM
+    Chat --> LLM
