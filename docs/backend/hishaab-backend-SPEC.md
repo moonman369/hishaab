@@ -132,7 +132,7 @@ Cross-module side effects go through **application events** (`@ApplicationModule
 | Config | `@ConfigurationProperties` records under `hishaab.*` |
 | Profiles | `dev` (local, password login allowed), `test`, `prod` |
 | Logging | SLF4J, structured key=value; message bodies only at `DEBUG` and masked |
-| Migrations | `V{n}__{snake_case}.sql`, one concern per file. Version numbers written in specs that are not built yet are **placeholders**: the real file takes the next free number when the spec is built (built so far: V1 to V6) |
+| Migrations | `V{n}__{snake_case}.sql`, one concern per file. Version numbers written in specs that are not built yet are **placeholders**: the real file takes the next free number when the spec is built (built so far: V1 to V7) |
 
 ### 2.5 Global Definition of Done
 
@@ -159,8 +159,8 @@ Status: `TODO` · `IN PROGRESS` · `DONE` · `BLOCKED (reason)`
 | | SPEC-013 | Parse templates + golden set | 012 | DONE |
 | | SPEC-014 | Normalisation | 013 | DONE |
 | | SPEC-015 | Processing orchestrator | 012–014 | DONE |
-| 2 Email (optional) | SPEC-020 | Optional Gmail connection & mail fetcher | 015, 031, 033 | TODO — optional; only the real Gmail client waits on O-02 / Q-2. **Nothing depends on it** |
-| 3 Match & review | SPEC-030 | Accounts & merchants | 015 | TODO |
+| 2 Email (optional) | SPEC-020 | Optional Gmail connection & mail fetcher | 015, 031, 033 | **DEFERRED** (skipped for now by Ayan, 2026-11-18; optional, nothing depends on it) |
+| 3 Match & review | SPEC-030 | Accounts & merchants | 015 | DONE (transaction repoint on merges is proven in SPEC-031, AC-031-11) |
 | | SPEC-031 | Matcher & transactions | 030 | TODO |
 | | SPEC-032 | Special kinds | 031 | TODO |
 | | SPEC-033 | Review queue | 031 | TODO |
@@ -691,7 +691,7 @@ public interface MailConnectionService {
 
 **Depends on:** 015
 
-**Data** — `V6__accounts_merchants.sql` (placeholder number, see §2.4): `account`, `account_alias`, `merchant`, `merchant_alias` (HLD §4.7). Unique `(bank, last4)` on account; `account_alias(id, account_id, bank, last4, kind TEXT CHECK (kind IN ('DEBIT_CARD','CREDIT_CARD','OTHER')))` with unique `(bank, last4)` and a check that an alias `(bank, last4)` is not also an account's own `(bank, last4)`; unique `raw_name_normalised` on merchant alias.
+**Data** — built as `V7__accounts_merchants.sql`: `account`, `account_alias`, `merchant`, `merchant_alias` (HLD §4.7). Unique `(bank, last4)` on account; `account_alias(id, account_id, bank, last4, kind TEXT CHECK (kind IN ('DEBIT_CARD','CREDIT_CARD','OTHER')))` with unique `(bank, last4)` and a check that an alias `(bank, last4)` is not also an account's own `(bank, last4)`; unique `raw_name_normalised` on merchant alias.
 
 **Rules**
 - R-030-1 Unknown `(bank, last4)` → account auto-created with `type` = the matching template's `accountType` (`SAVINGS` or `CREDIT_CARD`) and `nickname = bank + " ••" + last4` (cards: `bank + " card ••" + last4`).
@@ -699,8 +699,8 @@ public interface MailConnectionService {
 - R-030-3 Unknown normalised alias → new merchant with `type`: `PERSON` if the raw string looks like a personal UPI ID or a name of 2–3 words with no business keywords; else `MERCHANT`.
 - R-030-4 Merchants can be merged (`mergeMerchants(from, into)`): aliases move, transactions repoint.
 - R-030-5 **Card aliases** (Q-9): a debit card's last 4 can be registered as an alias of a savings account. Resolution order for `(bank, last4)`: account's own last4 → `account_alias` → otherwise auto-create (R-030-1).
-- R-030-6 Merging an account into another (`mergeAccounts(from, into)`, e.g. an auto-created "Axis ••8820" into "Axis ••7311") moves its transactions, turns `from`'s last4 into an alias of `into`, and deletes `from`. Written as a `user_override`/audit entry so it survives rebuilds.
-- R-030-7 API (user auth): `GET /api/v1/accounts`, `PATCH /api/v1/accounts/{id}` (nickname), `POST /api/v1/accounts/{id}/aliases` `{last4, kind}`, `DELETE /api/v1/accounts/{id}/aliases/{aliasId}`, `POST /api/v1/accounts/{id}/merge-into/{targetId}`.
+- R-030-6 Merging an account into another (`mergeAccounts(from, into)`, e.g. an auto-created "Axis ••8820" into "Axis ••7311"; same bank and type only, else 400 `ACCOUNT_MERGE_MISMATCH`) moves its aliases, publishes `AccountMerged` (listeners repoint their rows in the same transaction: transactions in SPEC-031, investments in SPEC-045), turns `from`'s last4 into an alias of `into`, and deletes `from`. It survives rebuilds because accounts and aliases are not derived data (R-034-3 never deletes them); the audit entry is added with SPEC-034's `audit_log`.
+- R-030-7 API (user auth): `GET /api/v1/accounts`, `PATCH /api/v1/accounts/{id}` (nickname), `POST /api/v1/accounts/{id}/aliases` `{last4, kind}`, `DELETE /api/v1/accounts/{id}/aliases/{aliasId}`, `POST /api/v1/accounts/{id}/merge-into/{targetId}` (optional body `{aliasKind}`). Merchants (HLD §4.11): `GET /api/v1/merchants?q=&limit=`, `PATCH /api/v1/merchants/{id}` `{name?, type?, alwaysAsk?}` (fix a wrong PERSON/MERCHANT guess), `POST /api/v1/merchants/{id}/merge-into/{targetId}` (publishes `MerchantMerged`).
 
 **Acceptance criteria**
 - AC-030-1 `SWIGGY*BLR` and `Swiggy Ltd` resolve to the same merchant.
@@ -711,8 +711,8 @@ public interface MailConnectionService {
 - AC-030-6 Adding alias `7311` to another account when an account already owns `7311` → 400 `ALIAS_CONFLICT`.
 
 **Tasks**
-- [ ] Migration
-- [ ] Resolver services + tests
+- [x] Migration
+- [x] Resolver services + tests
 
 ---
 
@@ -743,6 +743,7 @@ CREATE UNIQUE INDEX ux_evidence_record ON transaction_evidence(parsed_record_id)
 - R-031-7 Whole match step for one record runs in one DB transaction; unique-index violation → retry once as a ref match.
 - R-031-9 **An email never creates a transaction** (HLD D-27). An email record that matches no transaction by ref (R-031-1) or window (R-031-3) opens review `EMAIL_ONLY` (dedup key `EMAIL_ONLY:<parsedRecordId>`) and stays unlinked. Answers: `ADD` → one `CONFIRMED` transaction with the email as evidence (`match_method=MANUAL`, stored as a `user_override` so rebuilds keep it); `LINK` → attach to the chosen transaction; `IGNORE`.
 - R-031-10 Whenever an SMS creates or changes a transaction, open `EMAIL_ONLY` items whose record now matches it (ref, or window rules) are attached and `AUTO_CLOSED`. So an email that arrives before its SMS ends up as evidence, not a duplicate.
+- R-031-11 Listens to `AccountMerged` / `MerchantMerged` (SPEC-030) synchronously and repoints `transaction.account_id` / `merchant_id` in the same transaction.
 - R-031-8 Records with `record_type=INVESTMENT_CONFIRMATION` (fund-house allotments) are **never** turned into transactions or used as window/ref candidates (HLD D-24); they go to SPEC-046.
 
 **Acceptance criteria**
@@ -756,6 +757,7 @@ CREATE UNIQUE INDEX ux_evidence_record ON transaction_evidence(parsed_record_id)
 - AC-031-8 Email-only payment (no SMS ever) → no transaction, one `EMAIL_ONLY` item; answering `ADD` → one `CONFIRMED` transaction with the email as evidence; an SMS for it arriving later attaches by ref/window and does not create a second one.
 - AC-031-9 Email first, its SMS 30 min later → the SMS creates the transaction, the email attaches as evidence, and the `EMAIL_ONLY` item is `AUTO_CLOSED`.
 - AC-031-10 SMS-only mode (no email records at all): every SMS scenario above gives the same result as with Gmail connected.
+- AC-031-11 Merging account A into B (or merchant A into B) moves A's transactions to B; totals per account/merchant add up before and after (completes AC-030-3 / AC-030-5).
 
 **Tasks**
 - [ ] Migration
@@ -1556,6 +1558,12 @@ record LlmResult<T>(T value, double confidence, String model, long latencyMs, lo
 | 2026-11-18 | 035 | Balance check is mandatory on every scan in both modes; savings accounts only; new `BALANCE_STALE` review after `balance.staleDays` (14) without a balance-bearing SMS | No second source in SMS-only mode; card "available limit" is not a balance | Claude |
 | 2026-11-18 | 036 | SPEC-036 no longer depends on SPEC-020; `scan_run` records `source_mode`, `mail_status` and per-step results; report and push name the mode; `/summary` returns `sourceMode` + `mail` | Mode must be visible on the dashboard and in every report | Claude |
 | 2026-11-18 | 050 | Login never requests Gmail scopes; Gmail is a separate optional consent | Keeps email truly opt-in | Claude |
+| 2026-11-18 | 020 | SPEC-020 (optional Gmail) **deferred**; work continues with SPEC-030 | Ayan's call; nothing depends on it | Ayan |
+| 2026-11-18 | 030 | Accounts and merchants live in the `match` module (`AccountService`, `MerchantService`); `categorise` will use them | No accounts module in §2.3; resolution happens at match time | Claude |
+| 2026-11-18 | 030 | "A last 4 belongs to one account" (own number **or** one alias, never both) enforced by triggers on `account` and `account_alias`, plus a service pre-check that returns 400 `ALIAS_CONFLICT` | Cross-table uniqueness can't be a plain constraint | Claude |
+| 2026-11-18 | 030 | Merges publish `AccountMerged` / `MerchantMerged` before deleting the old row; later specs repoint in the same transaction. No `user_override` needed: accounts, aliases and merchants are not derived data | Transactions don't exist yet; keeps modules decoupled | Claude |
+| 2026-11-18 | 030 | Merchant normalisation: uppercase; non-alphanumerics (except `&`) → space; digit runs ≥ 4 dropped; leading titles (MR, MRS, DR, SHRI…) and trailing company/city suffixes (LTD, PVT, INDIA, BLR, MUMBAI…) dropped while > 1 word remains. UPI IDs keep their lowercased address as key. PERSON guess = 2–3 plain words with no business word, or a phone/name-like UPI ID; anything else MERCHANT. Merchant API added so a wrong guess can be fixed | R-030-2/3 made concrete; heuristics are only first guesses | Claude |
+| 2026-11-18 | 030 | Auto-created nicknames: `Axis ••1234` / `SBI ••1234`, cards `Axis card ••1234`; merging requires same bank and type | Readable defaults; merging a card into savings would corrupt balance checks | Claude |
 | | | | | |
 
 ---

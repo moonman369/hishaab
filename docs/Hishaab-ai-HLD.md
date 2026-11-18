@@ -262,8 +262,8 @@ flowchart TB
 | `mail` | **Optional.** Gmail connection (connect, status, disconnect = revoke + delete token), fetching bank emails, turning them into raw messages. Does nothing while Gmail is not connected |
 | `classify` | Deciding: completed transaction, or OTP / promo / reminder / failed / balance alert |
 | `parse` | Bank-specific regex templates; LLM fallback for unknown formats |
-| `match` | Dedup and linking (SMS ref/look-alike rules, email-as-evidence, refunds, transfers, card bill payments) |
-| `categorise` | Category rules, merchant aliases, AI suggestions |
+| `match` | Accounts (+ card aliases) and merchants (+ name aliases, merges); dedup and linking (SMS ref/look-alike rules, email-as-evidence, refunds, transfers, card bill payments) |
+| `categorise` | Category rules and AI suggestions (uses `match`'s merchants) |
 | `review` | The clarification queue and your answers |
 | `query` | All reads for the UI: lists, filters, summaries, totals |
 | `chat` | The chat agent and its read-only tools |
