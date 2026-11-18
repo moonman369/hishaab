@@ -1,5 +1,6 @@
 package in.moonman.hishaab.auth.internal;
 
+import in.moonman.hishaab.device.DeviceService;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import org.springframework.context.annotation.Bean;
@@ -14,6 +15,7 @@ import org.springframework.security.crypto.factory.PasswordEncoderFactories;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.provisioning.InMemoryUserDetailsManager;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.www.BasicAuthenticationFilter;
 import org.springframework.util.StringUtils;
 
 /**
@@ -23,14 +25,19 @@ import org.springframework.util.StringUtils;
 class SecurityConfig {
 
     @Bean
-    SecurityFilterChain apiSecurity(HttpSecurity http, BasicAuthProperties basic) throws Exception {
+    SecurityFilterChain apiSecurity(HttpSecurity http, BasicAuthProperties basic, DeviceService devices)
+            throws Exception {
         http
                 .csrf(csrf -> csrf.disable()) // stateless JSON API, no cookies
                 .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .addFilterBefore(new DeviceTokenFilter(devices), BasicAuthenticationFilter.class)
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(HttpMethod.GET, "/actuator/health", "/actuator/health/**").permitAll()
                         .requestMatchers("/error").permitAll()
-                        .anyRequest().authenticated())
+                        // R-010-3: a device may only upload SMS, read its config and update itself.
+                        .requestMatchers("/api/v1/ingest/**", "/api/v1/device/**").hasRole(Roles.DEVICE)
+                        .requestMatchers(HttpMethod.PATCH, "/api/v1/devices/me").hasRole(Roles.DEVICE)
+                        .anyRequest().hasRole(Roles.USER))
                 .exceptionHandling(e -> e
                         .authenticationEntryPoint((req, res, ex) -> writeProblem(res, 401, "UNAUTHORIZED",
                                 "Unauthorized", "Authentication is required"))
@@ -58,7 +65,7 @@ class SecurityConfig {
         }
         return new InMemoryUserDetailsManager(User.withUsername(basic.username())
                 .password(encoder.encode(basic.password()))
-                .roles("USER")
+                .roles(Roles.USER)
                 .build());
     }
 
@@ -67,7 +74,7 @@ class SecurityConfig {
         return PasswordEncoderFactories.createDelegatingPasswordEncoder();
     }
 
-    private static void writeProblem(HttpServletResponse res, int status, String code, String title, String detail)
+    static void writeProblem(HttpServletResponse res, int status, String code, String title, String detail)
             throws IOException {
         res.setStatus(status);
         res.setContentType(MediaType.APPLICATION_PROBLEM_JSON_VALUE);

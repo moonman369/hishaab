@@ -152,10 +152,10 @@ Status: `TODO` · `IN PROGRESS` · `DONE` · `BLOCKED (reason)`
 | Phase | Spec | Title | Depends on | Status |
 |---|---|---|---|---|
 | 0 Foundation | SPEC-000 | Skeleton, conventions, test setup | — | DONE |
-| | SPEC-001 | Settings | 000 | TODO |
-| 1 Ingest & parse | SPEC-010 | Devices & device tokens | 000 | TODO |
-| | SPEC-011 | SMS ingest API | 001, 010 | TODO |
-| | SPEC-012 | Classifier | 011 | TODO |
+| | SPEC-001 | Settings | 000 | DONE |
+| 1 Ingest & parse | SPEC-010 | Devices & device tokens | 000 | DONE |
+| | SPEC-011 | SMS ingest API | 001, 010 | DONE |
+| | SPEC-012 | Classifier | 011 | IN PROGRESS (AC-012-1..5 pass; AC-012-6 waits on the SPEC-013 golden set) |
 | | SPEC-013 | Parse templates + golden set | 012 | **BLOCKED (needs masked sample SMS/emails from Ayan)** |
 | | SPEC-014 | Normalisation | 013 | TODO |
 | | SPEC-015 | Processing orchestrator | 012–014 | TODO |
@@ -317,10 +317,10 @@ Seeded keys and defaults:
 - AC-001-4 A successful patch publishes `SettingsChanged`.
 
 **Tasks**
-- [ ] Migration + seed
-- [ ] `SettingsService` with typed getters
-- [ ] Controller + validation
-- [ ] Event publishing
+- [x] Migration + seed
+- [x] `SettingsService` with typed getters
+- [x] Controller + validation
+- [x] Event publishing
 
 ---
 
@@ -367,10 +367,10 @@ ALTER TABLE raw_message ADD COLUMN device_id UUID REFERENCES device(id);
 **Note:** until SPEC-050, "user auth" = the temporary dev basic auth.
 
 **Tasks**
-- [ ] Migration
-- [ ] Token generation + hashing
-- [ ] Security filter for device tokens
-- [ ] Controllers
+- [x] Migration
+- [x] Token generation + hashing
+- [x] Security filter for device tokens
+- [x] Controllers
 
 ---
 
@@ -415,12 +415,12 @@ Response 200:
 **Tests:** `IngestSmsIT` (Testcontainers), `SmsIdTest` (shared vectors also used by the worker).
 
 **Tasks**
-- [ ] Request/response records + validation
-- [ ] Hash check + allowlist check
-- [ ] Insert with `ON CONFLICT DO NOTHING`
-- [ ] Cursor update
-- [ ] After-commit event
-- [ ] Publish 3 fixed test vectors (input → hash) in `src/test/resources/contract/sms-id-vectors.json` for the worker to reuse
+- [x] Request/response records + validation
+- [x] Hash check + allowlist check
+- [x] Insert with `ON CONFLICT DO NOTHING`
+- [x] Cursor update
+- [x] After-commit event
+- [x] Publish 3 fixed test vectors (input → hash) in `src/test/resources/contract/sms-id-vectors.json` for the worker to reuse
 
 ---
 
@@ -448,9 +448,9 @@ Response 200:
 - AC-012-6 Every message in the golden set (SPEC-013) is classified as its fixture says.
 
 **Tasks**
-- [ ] Classification record + rules loader
-- [ ] Ordered rule engine
-- [ ] Unit tests for AC-012-1..5
+- [x] Classification record + rules loader
+- [x] Ordered rule engine
+- [x] Unit tests for AC-012-1..5
 - [ ] Hook into golden runner when SPEC-013 lands
 
 ---
@@ -1247,6 +1247,24 @@ record LlmResult<T>(T value, double confidence, String model, long latencyMs, lo
 | 2026-11-17 | 000 | `Ids.newId()` = hand-rolled UUIDv7 (JDK 25 has no v7 factory) | §2.4 prefers v7; avoids a dependency | Claude |
 | 2026-11-17 | 000 | AC-000-2 negative case uses a test-only fixture (`fixture.modulith.violating`) verified with an ImportOption that includes test classes | Proves the check fails on an `internal` call without planting a violation in main code | Claude |
 | 2026-11-17 | 000 | Integration tests call the running server with JDK `HttpClient` (no MockMvc/test starters) | Exercises the real filter chain; no extra dependencies | Claude |
+| 2026-11-17 | 000 | One Postgres Testcontainer shared by all Spring test contexts in the JVM; tests use unique IDs and restore settings they change | `raw_message` rows can't be deleted (H-2), and per-context containers made the suite slow | Claude |
+| 2026-11-17 | 001 | Settings stored/read via `JdbcTemplate` (`?::jsonb`), not JPA; read from DB on every call (no cache) | Avoids Hibernate JSON-mapper/Jackson 3 coupling; reads are rare, and no cache means no stale values | Claude |
+| 2026-11-17 | 001 | PATCH validates every key before writing; any error → nothing changes. Invalid non-cron values → 400 `INVALID_SETTING_VALUE` | Spec names only `UNKNOWN_SETTING`/`INVALID_CRON`; one generic code for the rest | Claude |
+| 2026-11-17 | 001 | `SettingsChanged(key)` published only for keys whose value actually changed (jsonb `IS DISTINCT FROM`) | No spurious reschedules on no-op PATCHes | Claude |
+| 2026-11-17 | 001 | Ranges: `scan.serverDelayMinutes` 0–720, `match.smsEmailWindowMinutes` 1–1440, `backfill.days` 1–365, `ai.categoryConfidenceMin` 0–1; `scan.cron` must have exactly 6 fields (no `@daily` macros); allowlist duplicates collapse | Spec gives no bounds; these reject obvious mistakes. Easy to widen | Claude |
+| 2026-11-17 | 010 | Role rules: `DEVICE` only on `/api/v1/ingest/**`, `/api/v1/device/**`, `PATCH /api/v1/devices/me`; every other path needs `USER` (so a user calling device endpoints also gets 403) | R-010-3, applied symmetrically so each endpoint has exactly one kind of caller | Claude |
+| 2026-11-17 | 010 | An `Authorization: Bearer hdt_…` header that is unknown/revoked → 401 immediately, never falls through to other schemes | R-010-4; no ambiguity about which identity a request has | Claude |
+| 2026-11-17 | 010 | Token hash = SHA-256 hex of the full token string incl. `hdt_`; revoke is idempotent (204), unknown id → 404 `DEVICE_NOT_FOUND`; `/device/config` returns `cursorMs: null` before the first upload | Details the spec left open | Claude |
+| 2026-11-17 | 011 | Item checks in order: shape → hash → allowlist → insert. Null fields, non-hex id, `receivedAtMs ≤ 0`, sender > 64 or body > 10 000 chars, or NUL characters → item rejected `INVALID_MESSAGE` (not a batch 400) | R-011-7: one bad item never fails the batch; Postgres TEXT cannot store NUL | Claude |
+| 2026-11-17 | 011 | Empty batch → 400 `EMPTY_BATCH`; 501+ → 400 `BATCH_TOO_LARGE` | R-011-1 names only the second code | Claude |
+| 2026-11-17 | 011 | Response `cursorMs` = the device's stored cursor after the update (= batch max when it is newer; unchanged for older batches; null if nothing storable was ever uploaded). `last_sync_at` updates on every successful call | Worker never sees the cursor go backwards (AC-011-5) | Claude |
+| 2026-11-17 | 011 | Sender middle part = `^(?:XX-)?([A-Z]{3,8})(?:-X)?$` on the uppercased sender; phone numbers never match | HLD §5.7; same rule as allowlist entries (R-001-3) | Claude |
+| 2026-11-17 | 011 | The same ID twice in one batch → first `accepted`, second `duplicate` | Follows from `ON CONFLICT DO NOTHING` | Claude |
+| 2026-11-17 | 011 | `SenderIds.middlePart` moved to `shared` | Needed by ingest (allowlist), classify (bank rules) and later parse (`senderPattern`) | Claude |
+| 2026-11-17 | 012 | **Safety bias:** every ignore class (OTP, PROMO, FAILED_TXN, MANDATE_REMINDER, BALANCE_ONLY, STATEMENT) refuses messages that also report a completed money movement (past-tense debited/credited/spent/… not preceded by "will be"/"to be"). OTP additionally needs an actual 4–8 digit code next to the OTP wording | Wrongly ignoring silently drops spend from totals (H-9); wrongly classing as TRANSACTION is caught downstream (no template → UNPARSED review). E.g. the "Never share your OTP" footer on transaction SMS must not hide the transaction | Claude — **Ayan to confirm** |
+| 2026-11-17 | 012 | R-012-4 implemented as a pure mapping (`Classification.rawStatus()/ignoreReason()`); the DB status update and `MessageClassified` publish happen in the SPEC-015 orchestrator. `FAILED_TXN` also sets `ignore_reason = FAILED_TXN` | R-012-5 keeps the classifier pure; SPEC-015 owns per-message transactions and locking | Claude |
+| 2026-11-17 | 012 | Rule file format: `senders` (middle parts; empty = all), `fragments` (`{{name}}` macros), `classes.<CLASS>[] = {name, all[], none[]}`; text lowercased + whitespace collapsed; bank files are checked before common rules within a class; reason = `<CLASS>:<rule name>`. Only `common.yml` exists until real samples arrive | Spec asked for per-bank YAML; bank-specific patterns without samples would be guesses | Claude |
+| 2026-11-17 | 012 | Rules loaded with Spring `YamlMapFactoryBean` (SnakeYAML is already on the classpath via Boot) | Boot `Binder` can rewrite uppercase/underscore map keys like `MANDATE_REMINDER`; no new dependency | Claude |
 | | | | | |
 
 ---

@@ -7,9 +7,11 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.ActiveProfiles;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
@@ -32,6 +34,20 @@ public abstract class IntegrationTest {
 
     @Value("${local.server.port}")
     private int port;
+
+    @Autowired
+    protected JdbcTemplate jdbc;
+
+    /** Puts every setting back to its V2 migration default. Call after tests that change settings. */
+    protected void restoreDefaultSettings() {
+        jdbc.update("""
+                UPDATE settings s SET value = d.value::jsonb, updated_at = now()
+                FROM (VALUES ('scan.cron', '"0 0 22 * * *"'), ('scan.zone', '"Asia/Kolkata"'),
+                             ('scan.serverDelayMinutes', '15'), ('senders.allowlist', '[]'),
+                             ('match.smsEmailWindowMinutes', '180'), ('ai.categoryConfidenceMin', '0.80'),
+                             ('backfill.days', '31')) AS d(key, value)
+                WHERE s.key = d.key""");
+    }
 
     protected HttpResponse<String> get(String path) {
         return send(request(path).GET().build());

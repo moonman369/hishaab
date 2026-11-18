@@ -1,0 +1,20 @@
+stateDiagram-v2
+    [*] --> Scheduled: generated from the investment's schedule
+    Scheduled --> Confirmed: bank SIP debit or fund-house allotment\nmatches (amount + account + date window + text)
+    Scheduled --> Failed: failed-debit message matches this instalment
+    Scheduled --> Missed: no match by due date + grace days
+    Missed --> Confirmed: late debit / allotment arrives
+    Failed --> Confirmed: retry debit succeeds
+    Scheduled --> MarkedPaid: you mark it paid
+    Scheduled --> Skipped: you skip it
+    Missed --> MarkedPaid: you mark it paid
+    Missed --> Skipped: you skip it
+    Confirmed --> [*]
+    MarkedPaid --> [*]
+    Skipped --> [*]
+    note right of Scheduled
+        Two SIPs could match the same message?
+        Nothing changes: a review item asks you.
+        Any status you set is stored as a
+        user_override and survives rebuilds.
+    end note

@@ -1,0 +1,85 @@
+# SPEC-012 classifier rules that apply to every sender.
+#
+# How rules are evaluated (see RuleBasedClassifier):
+#   * The message body is lowercased and runs of whitespace collapse to one space before matching.
+#   * Classes are checked in the fixed order of R-012-2:
+#       OTP > PROMO > FAILED_TXN > MANDATE_REMINDER > BALANCE_ONLY > STATEMENT > TRANSACTION > UNKNOWN
+#     The first class with a matching rule wins. Order inside this file does not matter.
+#   * A rule matches when every regex in `all` is found AND no regex in `none` is found.
+#   * `{{name}}` inside a regex is replaced by the fragment `name` below.
+#   * Bank-specific files (classify/<bank>.yml with a `senders:` list of sender middle parts) are checked
+#     before these common rules, within the same class. None exist yet: they arrive with the golden set (SPEC-013).
+#
+# SAFETY PRINCIPLE: wrongly *ignoring* a message silently drops a real transaction from the totals, while
+# wrongly classing something as TRANSACTION is caught later (no template match -> UNPARSED review item,
+# SPEC-015). So every "ignore" class is specific, and refuses messages that also report a completed money
+# movement (`none: ['{{done}}']`). When in doubt, a message falls through to TRANSACTION or UNKNOWN.
+#
+# These patterns are a first cut written WITHOUT real samples. AC-012-6 (golden set) must confirm them.
+
+senders: []
+
+fragments:
+  # Currency-prefixed amount: "rs.1,234.50", "rs 500", "inr 1,234.5", "₹1,23,456.00"
+  amount: '(?:rs\.?|inr|₹)\s?\d[\d,]*(?:\.\d{1,2})?'
+  # Rejects future/conditional phrasing directly before an action word ("will be debited", "to be credited")
+  not_future: '(?<!will be )(?<!to be )(?<!shall be )(?<!would be )(?<!may be )(?<!will get )(?<!can be )'
+  # A completed money movement (R-012-3)
+  done: '{{not_future}}\b(?:debited|credited|spent|withdrawn|sent|received|paid|deposited|transferred|deducted|refunded|reversed)\b'
+
+classes:
+  OTP:
+    # Needs an actual code next to the OTP wording, so the common footer
+    # "Never share your OTP with anyone" on transaction SMS does not match.
+    - name: otp-with-code
+      all:
+        - '\b(?:otp|one[- ]time password|verification code)\b[^.]{0,60}?\b\d{4,8}\b|\b\d{4,8}\b is (?:your|the) (?:otp|one[- ]time password|verification code)\b'
+      none:
+        - '{{done}}'
+
+  PROMO:
+    - name: marketing-words
+      all:
+        - '\b(?:offers?|pre-?approved|apply now|click here|limited period|hurry|exclusive|congratulations|eligible for|upgrade now|lowest emi|win)\b|\d+\s?% off|t&c apply'
+      none:
+        - '{{done}}'
+
+  FAILED_TXN:
+    # A message that also says money was debited/credited is NOT treated as failed: it falls through to
+    # TRANSACTION, and if no template matches it becomes a review item instead of vanishing.
+    - name: failed-or-declined
+      all:
+        - '\b(?:failed|declined|unsuccessful|not successful|could not be (?:processed|completed))\b'
+      none:
+        - '{{done}}'
+
+  MANDATE_REMINDER:
+    - name: future-debit
+      all:
+        - '\b(?:will be|to be|shall be|is scheduled to be|would be) (?:auto-?)?(?:debited|deducted|charged|paid)\b|\bscheduled (?:for|on)\b|\bdue (?:on|by)\b|\bupcoming (?:debit|payment|mandate)\b|\bpre-?debit notification\b'
+      none:
+        - '{{done}}'
+        # Card statements say "due on" too; they belong to STATEMENT.
+        - '\bstatement\b|\b(?:total|min(?:imum)?)\.? ?(?:amt\.?|amount)? ?due\b'
+
+  BALANCE_ONLY:
+    - name: balance-without-movement
+      all:
+        - '\b(?:avl|avbl|available|clr|closing|ledger|a/c|account)\.? ?(?:bal|balance)\b|\bbalance (?:in|of|is)\b'
+        - '{{amount}}'
+      none:
+        - '{{done}}'
+
+  STATEMENT:
+    - name: card-or-account-statement
+      all:
+        - '\bstatement\b|\b(?:total|min(?:imum)?)\.? ?(?:amt\.?|amount)? ?due\b'
+      none:
+        - '{{done}}'
+
+  TRANSACTION:
+    # R-012-3: an amount AND a completed-action word.
+    - name: amount-and-completed-action
+      all:
+        - '{{amount}}'
+        - '{{done}}'

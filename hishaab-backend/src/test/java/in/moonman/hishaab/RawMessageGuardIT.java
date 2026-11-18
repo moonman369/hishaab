@@ -6,15 +6,10 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import in.moonman.hishaab.shared.Ids;
 import in.moonman.hishaab.support.IntegrationTest;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataAccessException;
-import org.springframework.jdbc.core.JdbcTemplate;
 
 /** H-2 enforced by the V1 trigger: content is immutable, rows are never deleted, status may change. */
 class RawMessageGuardIT extends IntegrationTest {
-
-    @Autowired
-    JdbcTemplate jdbc;
 
     private String insert() {
         String id = Ids.sha256Hex("guard-test-" + Ids.newId());

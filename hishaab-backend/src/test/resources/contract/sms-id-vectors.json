@@ -1,0 +1,26 @@
+{
+  "description": "SMS message ID test vectors (SPEC §4.1): id = lowercase_hex(SHA-256(UTF8(sender + \"\n\" + body + \"\n\" + receivedAtEpochMillis))). Shared with the Android worker; expected IDs generated independently with Python hashlib. Bodies are synthetic.",
+  "vectors": [
+    {
+      "name": "axis_upi_debit_ascii",
+      "sender": "AX-AXISBK-S",
+      "body": "INR 450.00 debited from A/c no. XX1234 on 17-11-26 for UPI/P2M/432112345678/SWIGGY. Not you? Call 18001035577 - Axis Bank",
+      "receivedAtMs": 1763400000000,
+      "expectedId": "1c9e1f80765d88e4f30a60d8d5dacfc8a82bf9d2e1d9706ddc726272b35ebe66"
+    },
+    {
+      "name": "sbi_multiline_rupee_symbol",
+      "sender": "VM-SBIINB-S",
+      "body": "Dear Customer,\nYour A/c X5678 is credited by ₹1,23,456.78 on 16Nov26.\n-SBI",
+      "receivedAtMs": 1763312345678,
+      "expectedId": "04b517305331d6de2bdab96e44d2e372c12ceb5be33597ab4c86bd5dd583c1f5"
+    },
+    {
+      "name": "trailing_space_and_crlf_preserved",
+      "sender": "JD-SBICRD-T",
+      "body": "Rs.2,000 spent on SBI Card ending 9012 at AMAZON on 15/11/26. \r\nAvl Lmt Rs.48,000 ",
+      "receivedAtMs": 1763225999999,
+      "expectedId": "4f02d018cd79fcdc6bc7d2b9d1804b2c3ccbf28bdae32a39c16e5e6d5e9b700b"
+    }
+  ]
+}

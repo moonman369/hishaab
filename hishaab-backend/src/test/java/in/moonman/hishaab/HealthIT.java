@@ -5,14 +5,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 import in.moonman.hishaab.support.IntegrationTest;
 import java.net.http.HttpResponse;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.jdbc.core.JdbcTemplate;
 
 /** AC-000-1: on an empty DB Flyway applies all migrations and health is UP without credentials. */
 class HealthIT extends IntegrationTest {
-
-    @Autowired
-    JdbcTemplate jdbc;
 
     @Test
     void AC_000_01_healthIsUpWithoutCredentials() {
