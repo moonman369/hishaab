@@ -5,7 +5,7 @@
 | **Component** | `hishaab-backend` (Spring Boot service) |
 | **Repo path** | `hishaab/backend/` |
 | **Design reference** | `docs/Hishaab-ai-HLD.md` (the "HLD") — the *why*. This file is the *what to build and how to check it*. |
-| **Version** | Spec v1.1 — 18 Nov 2026 (investments, synthetic golden set, SBI Card dropped) |
+| **Version** | Spec v1.2 — 18 Nov 2026 (email optional / SMS-only default; investments; synthetic golden set; SBI Card dropped) |
 | **Audience** | Claude Code and Ayan |
 
 ---
@@ -45,7 +45,7 @@ Each spec has: **Goal · Depends on · Scope · Data · API · Rules (R-) · Acc
 
 ## 1. Context in one paragraph
 
-Hishaab.ai turns bank SMS (uploaded raw by an Android worker) and bank emails (pulled by the server from Gmail) into one clean list of transactions. Each real transaction is stored once (dedup), linked to every message that proves it (evidence), categorised (your rules first, AI only for unknown merchants), and anything unclear goes to a review queue. A daily job pulls email, re-runs matching, checks balances and pushes a report. A chat agent answers questions using read-only tools. Banks in v1: **Axis (savings + credit card), SBI (savings)**; plus **mutual-fund houses (AMCs)** for SIP messages. You also record investments (SIP, RD, FD, PPF) whose instalments are confirmed from messages (SPEC-045/046). One user. See HLD §1–§4, §4.13.
+Hishaab.ai turns bank SMS (uploaded raw by an Android worker; **the only source of truth**) into one clean list of transactions. Bank emails are **optional**: only if you connect Gmail does the server pull them, and then they only add evidence to transactions SMS already found (HLD D-27). Each real transaction is stored once (dedup), linked to every message that proves it (evidence), categorised (your rules first, AI only for unknown merchants), and anything unclear goes to a review queue. A daily job pulls email (only if Gmail is connected), re-runs matching, checks balances (every scan, mandatory) and pushes a report that says which mode is active. A chat agent answers questions using read-only tools. Banks in v1: **Axis (savings + credit card), SBI (savings)**; plus **mutual-fund houses (AMCs)** for SIP messages. You also record investments (SIP, RD, FD, PPF) whose instalments are confirmed from messages (SPEC-045/046). One user. See HLD §1–§4, §4.13.
 
 ---
 
@@ -77,7 +77,7 @@ Add when the spec that needs them starts, not before.
 | testcontainers (postgresql, junit-jupiter), spring-boot-testcontainers | SPEC-000 |
 | springdoc-openapi-starter-webmvc-ui | SPEC-044 |
 | spring-boot-starter-oauth2-client, -oauth2-resource-server | SPEC-050 |
-| Google API client for Gmail **or** Jakarta Mail (IMAP) — decided in SPEC-020 | SPEC-020 |
+| Google API client for Gmail **or** Jakarta Mail (IMAP) — decided in SPEC-020. **Optional feature:** added only when the real Gmail client is built | SPEC-020 (optional) |
 | firebase-admin | SPEC-036 |
 | Spring AI Gemini starter (the one matching the Boot version) | SPEC-060 |
 
@@ -132,7 +132,7 @@ Cross-module side effects go through **application events** (`@ApplicationModule
 | Config | `@ConfigurationProperties` records under `hishaab.*` |
 | Profiles | `dev` (local, password login allowed), `test`, `prod` |
 | Logging | SLF4J, structured key=value; message bodies only at `DEBUG` and masked |
-| Migrations | `V{n}__{snake_case}.sql`, one concern per file. Version numbers written in specs that are not built yet are **placeholders**: the real file takes the next free number when the spec is built (built so far: V1 to V5) |
+| Migrations | `V{n}__{snake_case}.sql`, one concern per file. Version numbers written in specs that are not built yet are **placeholders**: the real file takes the next free number when the spec is built (built so far: V1 to V6) |
 
 ### 2.5 Global Definition of Done
 
@@ -158,15 +158,15 @@ Status: `TODO` · `IN PROGRESS` · `DONE` · `BLOCKED (reason)`
 | | SPEC-012 | Classifier | 011 | DONE |
 | | SPEC-013 | Parse templates + golden set | 012 | DONE |
 | | SPEC-014 | Normalisation | 013 | DONE |
-| | SPEC-015 | Processing orchestrator | 012–014 | TODO |
-| 2 Email | SPEC-020 | Mail fetcher | 015 | **BLOCKED (HLD O-02: Gmail API vs IMAP)** |
+| | SPEC-015 | Processing orchestrator | 012–014 | DONE |
+| 2 Email (optional) | SPEC-020 | Optional Gmail connection & mail fetcher | 015, 031, 033 | TODO — optional; only the real Gmail client waits on O-02 / Q-2. **Nothing depends on it** |
 | 3 Match & review | SPEC-030 | Accounts & merchants | 015 | TODO |
 | | SPEC-031 | Matcher & transactions | 030 | TODO |
 | | SPEC-032 | Special kinds | 031 | TODO |
 | | SPEC-033 | Review queue | 031 | TODO |
 | | SPEC-034 | Overrides & rebuild | 031, 033 | TODO |
 | | SPEC-035 | Balance check | 031, 033 | TODO |
-| | SPEC-036 | Scheduler, scan runs, report, push | 020, 033 (046 for the investment lines) | TODO |
+| | SPEC-036 | Scheduler, scan runs, report, push | 033, 035 (020 optional; 046 for the investment lines) | TODO |
 | 3b Investments | SPEC-045 | Investments & schedules | 030, 034 | TODO |
 | | SPEC-046 | Instalment matching & lifecycle | 045, 031, 032, 033 | TODO |
 | 4 API & auth | SPEC-040 | Transactions query | 031 | TODO |
@@ -181,7 +181,7 @@ Status: `TODO` · `IN PROGRESS` · `DONE` · `BLOCKED (reason)`
 | 6 Chat | SPEC-070 | Chat agent & tools | 041, 060 | TODO |
 | 9 Ops | SPEC-090 | Container, deploy, backup, CI | 050 | TODO |
 
-Recommended order: 000 → 001 → 010 → 011 → 012 → 013 + 014 → 015 → 030 → 031 → 033 → 032 → 034 → 045 → 046 → 035 → 040 → 043 → 041 → 042 → 044 → 050 → 020 → 036 → 090 → 060 → 061 → 062 → 070.
+Recommended order: 000 → 001 → 010 → 011 → 012 → 013 + 014 → 015 → 030 → 031 → 033 → 032 → 034 → 045 → 046 → 035 → 040 → 043 → 041 → 042 → 044 → 050 → 036 → 090 → 060 → 061 → 062 → 070. **SPEC-020 (optional Gmail)** can be built any time after 031 + 033; the app is complete without it.
 
 ---
 
@@ -217,7 +217,7 @@ id = "gmail:" + <Gmail message id>      // or "imap:" + <Message-ID header> if I
 | `TxnStatus` | `CONFIRMED`, `PENDING`, `HIDDEN` |
 | `CategorySource` | `USER`, `RULE`, `AI`, `NONE` |
 | `MatchMethod` | `FIRST`, `REF`, `WINDOW`, `MANUAL` |
-| `ReviewType` | `AMBIGUOUS_MATCH`, `UNPARSED`, `LOW_CONFIDENCE`, `UNKNOWN_CATEGORY`, `UNKNOWN_KIND`, `BALANCE_GAP`, `ORPHAN_OVERRIDE`, `INSTALMENT_AMBIGUOUS`, `SIP_SCHEDULE_SUGGESTION` |
+| `ReviewType` | `AMBIGUOUS_MATCH`, `UNPARSED`, `LOW_CONFIDENCE`, `UNKNOWN_CATEGORY`, `UNKNOWN_KIND`, `BALANCE_GAP`, `ORPHAN_OVERRIDE`, `INSTALMENT_AMBIGUOUS`, `SIP_SCHEDULE_SUGGESTION`, `EMAIL_ONLY`, `BALANCE_STALE` |
 | `ReviewStatus` | `OPEN`, `RESOLVED`, `DISMISSED`, `AUTO_CLOSED` |
 | `Bank` | `AXIS`, `SBI` (template metadata; fund houses are not banks) |
 | `AccountType` | `SAVINGS`, `CREDIT_CARD` |
@@ -226,6 +226,8 @@ id = "gmail:" + <Gmail message id>      // or "imap:" + <Message-ID header> if I
 | `Frequency` | `MONTHLY`, `QUARTERLY`, `YEARLY`, `EVERY_N_DAYS`, `EVERY_N_MONTHS`, `ONE_TIME` |
 | `InstalmentStatus` | `SCHEDULED`, `CONFIRMED`, `MARKED_PAID`, `MISSED`, `SKIPPED`, `FAILED` |
 | `InstalmentEvidenceKind` | `BANK_DEBIT`, `AMC_CONFIRMATION`, `FAILED_DEBIT` |
+| `SourceMode` | `SMS_ONLY` (default), `SMS_AND_EMAIL` |
+| `MailStatus` | `DISCONNECTED`, `CONNECTED`, `ERROR`, `REAUTH_REQUIRED` |
 
 ### 4.4 Error format
 
@@ -308,6 +310,10 @@ Seeded keys and defaults:
 | `match.smsEmailWindowMinutes` | `180` | SPEC-031 |
 | `ai.categoryConfidenceMin` | `0.80` | SPEC-061 |
 | `backfill.days` | `31` | worker, SPEC-020 |
+| `balance.staleDays` | `14` — *added by SPEC-035 (new migration)* | SPEC-035 |
+| `mail.fromAllowlist` | `["*"]` — *added by SPEC-020 (new migration)* | SPEC-020 |
+
+There is deliberately **no `mail.enabled` setting**: whether email is on is the state of the Gmail connection (SPEC-020), which needs a valid token, not just a flag.
 
 **API**
 - `GET /api/v1/settings` → all settings as an object.
@@ -590,48 +596,92 @@ Named groups recognised: `amount`, `dir`, `last4`, `channel`, `ref`, `cp`, `date
 - AC-015-4 A transaction-like message with no template → one `UNPARSED` review item, no transaction.
 
 **Tasks**
-- [ ] Advisory lock helper in `shared`
-- [ ] Orchestrator + listeners
-- [ ] Reprocess API (internal service; no HTTP yet)
+- [x] Advisory lock helper in `shared`
+- [x] Orchestrator + listeners
+- [x] Reprocess API (internal service; no HTTP yet)
 
 ---
 
-### SPEC-020 — Mail fetcher
+### SPEC-020 — Optional Gmail connection & mail fetcher
 
-**Goal:** Pull bank emails into `raw_message` daily and on backfill.
+**Goal:** Let you *optionally* connect Gmail so bank emails become **extra evidence** for transactions that SMS already found. The default is SMS-only and the app is fully usable without this spec. HLD D-27, §4.4, §7.2.
 
-**Depends on:** 015 · **BLOCKED** on HLD O-02.
+**Depends on:** 015, 031, 033 · The real Gmail client waits on HLD O-02 / Q-2. **Nothing else depends on this spec.**
 
-**Decision needed first (record in §6):**
-- Option A — **Gmail API** (`gmail.readonly`): needs an OAuth client. Risk: if the OAuth app stays in Google's "Testing" status, refresh tokens may expire after about a week. Must verify current Google policy and either publish the app or accept re-consent.
-- Option B — **IMAP** with a Google app password (requires 2-Step Verification). Simpler token handling.
+**Decision needed before the real client (record in §6):**
+- Option A — **Gmail API** (`gmail.readonly`): needs an OAuth client. Risk: if the OAuth app stays in Google's "Testing" status, refresh tokens may expire after about a week (→ `REAUTH_REQUIRED`, R-020-7). Must verify current Google policy and either publish the app or accept re-consent.
+- Option B — **IMAP** with a Google app password (requires 2-Step Verification). Simpler token handling, but we cannot revoke an app password (R-020-10).
 
-**Scope (either option)** — interface in `mail`:
+**Data** — `V?__mail_connection.sql` (placeholder number, §2.4)
+```sql
+CREATE TABLE mail_connection (
+  id               SMALLINT PRIMARY KEY DEFAULT 1 CHECK (id = 1),     -- one user, one mailbox
+  provider         TEXT NOT NULL CHECK (provider IN ('GMAIL_API', 'IMAP')),
+  status           TEXT NOT NULL CHECK (status IN ('DISCONNECTED', 'CONNECTED', 'ERROR', 'REAUTH_REQUIRED')),
+  account_masked   TEXT,                -- e.g. "a•••@gmail.com"; the full address is never logged or returned
+  token_encrypted  BYTEA,               -- AES-GCM (JDK), key from env HISHAAB_TOKEN_ENC_KEY; NULL when disconnected
+  connected_at     TIMESTAMPTZ,
+  disconnected_at  TIMESTAMPTZ,
+  last_fetch_at    TIMESTAMPTZ,
+  last_error       TEXT,
+  backfill_done_at TIMESTAMPTZ,
+  CHECK (status <> 'DISCONNECTED' OR token_encrypted IS NULL)
+);
+```
+No row, or `status = DISCONNECTED`, means **SMS-only mode**. The same migration adds the setting `mail.fromAllowlist` (default `["*"]`, SPEC-001).
+
+**Scope** — in `mail`:
 ```java
-public interface MailSource {
+public interface MailSource {                       // real Gmail/IMAP client + a fake for tests
   List<RawEmail> fetchSince(Instant since, Set<String> fromAddresses);
+  void revoke();                                    // best effort; IMAP: no-op
 }
 record RawEmail(String id, String from, String subject, String textBody, Instant receivedAt) {}
+
+public interface MailConnectionService {
+  MailConnectionView status();   // {mode, status, provider, accountMasked, connectedAt, lastFetchAt, lastError}
+  SourceMode mode();             // SMS_ONLY unless a connection exists that is not DISCONNECTED
+  MailConnectionView disconnect();
+}
 ```
 
+**API** (user auth)
+- `GET /api/v1/mail/connection` → `{mode, status, provider, accountMasked, connectedAt, lastFetchAt, lastError}` — never the token.
+- `POST /api/v1/mail/connection` `{provider}` → Gmail API: `{authorizationUrl}` (separate consent, scope `gmail.readonly` only); IMAP: body also carries the app password, validated immediately → `200` with the status.
+- `GET /api/v1/mail/oauth/callback` → stores the token, status `CONNECTED`, starts the backfill, redirects to Settings.
+- `DELETE /api/v1/mail/connection` → disconnect → `200` with the new status (and `revoked: true|false`).
+
 **Rules**
-- R-020-1 Only emails from configured sender addresses (`settings: mail.fromAllowlist`, new key) are fetched. Default `["*"]` (all senders) until bank and fund-house addresses are pinned (Q-3, Q-8); classification then decides what is a transaction, an allotment or noise.
+- R-020-1 Only emails from configured sender addresses (`settings: mail.fromAllowlist`) are fetched. Default `["*"]` (all senders) until bank and fund-house addresses are pinned (Q-3, Q-8); classification then decides what is a transaction, an allotment or noise.
 - R-020-2 HTML bodies are converted to plain text before storage (keep line breaks; drop scripts/styles/images).
 - R-020-3 Stored as `raw_message` with `source=EMAIL`, `id` per §4.2, `sender` = from address, `body` = `subject + "\n\n" + textBody`.
-- R-020-4 `fetchSince` start = last successful fetch time minus 1 day overlap (duplicates are harmless due to IDs). First run = now − `backfill.days`.
-- R-020-5 Credentials come from env vars / encrypted storage, never from code.
+- R-020-4 `fetchSince` start = last successful fetch time minus 1 day overlap (duplicates are harmless due to IDs). The first fetch after (re)connecting = now − `backfill.days` (**backfill**).
+- R-020-5 The OAuth client ID/secret come from env vars. The user's token is stored only in `mail_connection.token_encrypted` (AES-GCM, key `HISHAAB_TOKEN_ENC_KEY`, listed in `.env.example` with a fake value); never logged (H-6), never returned by the API.
+- R-020-6 **SMS-only is the default.** With no connection or `DISCONNECTED`, the mail step does nothing and makes no network call; every other feature works the same.
+- R-020-7 Mail is fetched only while `status = CONNECTED`. An auth failure while fetching → `REAUTH_REQUIRED`; any other failure → `ERROR` with `last_error`. Either way fetching pauses until you reconnect, and the scan carries on with SMS (R-036-2).
+- R-020-8 Connecting validates by fetching one page from the mailbox; failure → stays SMS-only, 400 `MAIL_CONNECT_FAILED`.
+- R-020-9 **Enabling never duplicates.** Backfilled and new emails go through the normal pipeline; under R-031-9 an email can only attach to an existing transaction as evidence or open a review item. It never creates a transaction, so the transaction count cannot go up because email was turned on.
+- R-020-10 **Disconnect:** stop fetching immediately; revoke the token at the provider (Gmail API: Google's token-revocation endpoint; IMAP: we cannot revoke an app password, so the response tells you to delete it in your Google account); **delete `token_encrypted`**; set `DISCONNECTED` and `disconnected_at`. A failed revocation still deletes the local token and is reported (`revoked: false`). Raw emails already stored stay (H-2), and so does their evidence on transactions; open `EMAIL_ONLY` items stay answerable.
+- R-020-11 Connect/disconnect write `audit_log` and publish `MailConnectionChanged(status)`; the mode shows on the dashboard (SPEC-041) and in every scan report (SPEC-036).
 
 **Acceptance criteria**
 - AC-020-1 With a fake `MailSource` returning 3 emails (1 from a non-allowlisted sender) → 2 stored.
 - AC-020-2 Running the fetch twice over the same window → no extra rows.
 - AC-020-3 HTML fixture → expected plain text.
+- AC-020-4 **Enable on existing SMS data → zero new duplicates.** Given 30 days of SMS-derived transactions (N of them) and a fake mailbox holding emails for 20 of them (10 carrying the same ref, 10 without a ref but inside the window) plus 2 emails with no SMS counterpart: after connect + backfill + processing, the transaction count is **still N**, each of the 20 has one extra `EMAIL` evidence row, 2 `EMAIL_ONLY` review items are open, and `spentPaise` for the period is unchanged.
+- AC-020-5 **Disconnect removes the token.** Connect, then `DELETE /api/v1/mail/connection` → the fake's `revoke()` is called once, `token_encrypted IS NULL`, status `DISCONNECTED`, the next scan makes no mail call, and stored emails plus their evidence rows are unchanged. With `revoke()` failing, the token is still deleted and the response says `revoked: false`.
+- AC-020-6 `GET /api/v1/mail/connection` shows mode, status, masked account and `lastFetchAt` after a fetch, and never the token.
+- AC-020-7 Fetch with an expired token → status `REAUTH_REQUIRED`; the same scan still processes SMS and finishes `PARTIAL`.
+- AC-020-8 Connect with bad credentials → 400 `MAIL_CONNECT_FAILED`; mode stays `SMS_ONLY`.
 
 **Tasks**
-- [ ] Decide A/B (Ayan) and record
-- [ ] `MailSource` interface + fake
-- [ ] Real implementation
-- [ ] HTML → text
-- [ ] Wire into SPEC-036
+- [ ] Decide A/B (Ayan) and record — only needed for the real client
+- [ ] Migration (`mail_connection`, `mail.fromAllowlist`)
+- [ ] `MailSource` interface + fake; `MailConnectionService`; token encryption
+- [ ] Connect / callback / status / disconnect API
+- [ ] Backfill on connect; HTML → text
+- [ ] Real Gmail (or IMAP) implementation
+- [ ] Wire into SPEC-036 (mail step only when `CONNECTED`)
 
 ---
 
@@ -684,23 +734,28 @@ CREATE UNIQUE INDEX ux_evidence_record ON transaction_evidence(parsed_record_id)
 - R-031-1 **Ref match:** record has `refNo` and a transaction with same `(refNo, direction)` exists → attach evidence, `match_method=REF`. Never creates a second transaction.
 - R-031-2 **Same-source rule (L3):** a record is never matched by window to a transaction that already has evidence from the **same source**. Two SMS → two transactions unless refs match.
 - R-031-3 **Window match (L2):** no ref match → candidates = transactions with equal `amountPaise`, `direction`, account, and **no evidence from this record's source**, with `|txnTime − record.txnTime| ≤ match.smsEmailWindowMinutes`.
-   - 0 candidates → new transaction, `match_method=FIRST`, `status=CONFIRMED`.
+   - 0 candidates → **SMS record:** new transaction, `match_method=FIRST`, `status=CONFIRMED`; **email record:** see R-031-9.
    - 1 candidate and channels equal (or one unknown) → attach, `match_method=WINDOW`.
-   - otherwise → new transaction `status=PENDING` + review `AMBIGUOUS_MATCH` listing candidates.
+   - otherwise → **SMS record:** new transaction `status=PENDING` + review `AMBIGUOUS_MATCH` listing candidates; **email record:** no transaction, review `AMBIGUOUS_MATCH` on the record listing candidates.
 - R-031-4 A new transaction copies fields from its first record; later evidence fills **only null** fields (e.g. an email bringing the ref no.), never overwrites.
 - R-031-5 When later evidence adds a `refNo` that makes another `PENDING` transaction's open `AMBIGUOUS_MATCH` resolvable, that review item is `AUTO_CLOSED` and the pair is merged.
 - R-031-6 New transactions start `kind=SPEND` for `DR`, `INCOME` for `CR`; SPEC-032 may change it. Publish `TransactionCreated` / `TransactionUpdated`.
 - R-031-7 Whole match step for one record runs in one DB transaction; unique-index violation → retry once as a ref match.
+- R-031-9 **An email never creates a transaction** (HLD D-27). An email record that matches no transaction by ref (R-031-1) or window (R-031-3) opens review `EMAIL_ONLY` (dedup key `EMAIL_ONLY:<parsedRecordId>`) and stays unlinked. Answers: `ADD` → one `CONFIRMED` transaction with the email as evidence (`match_method=MANUAL`, stored as a `user_override` so rebuilds keep it); `LINK` → attach to the chosen transaction; `IGNORE`.
+- R-031-10 Whenever an SMS creates or changes a transaction, open `EMAIL_ONLY` items whose record now matches it (ref, or window rules) are attached and `AUTO_CLOSED`. So an email that arrives before its SMS ends up as evidence, not a duplicate.
 - R-031-8 Records with `record_type=INVESTMENT_CONFIRMATION` (fund-house allotments) are **never** turned into transactions or used as window/ref candidates (HLD D-24); they go to SPEC-046.
 
 **Acceptance criteria**
 - AC-031-1 SMS with ref R, then email with ref R → 1 transaction, 2 evidence rows.
 - AC-031-2 SMS without ref, email 40 min later same amount/account/direction → 1 transaction (`WINDOW`).
-- AC-031-3 Email arrives 5 h later (window 180) → 2 transactions.
+- AC-031-3 Email arrives 5 h later (window 180) → still **1** transaction (the SMS one) + one `EMAIL_ONLY` review item (R-031-9).
 - AC-031-4 Two SMS, same amount/account, 2 min apart, no refs → **2 transactions**.
-- AC-031-5 Two SMS candidates exist for one email → new `PENDING` transaction + `AMBIGUOUS_MATCH` review.
+- AC-031-5 Two SMS candidates exist for one email → **no new transaction**; one `AMBIGUOUS_MATCH` review on the email listing both candidates.
 - AC-031-6 Email adds ref to an SMS-only transaction → `ref_no` filled, nothing else overwritten.
 - AC-031-7 The same parsed record processed twice → still one evidence row.
+- AC-031-8 Email-only payment (no SMS ever) → no transaction, one `EMAIL_ONLY` item; answering `ADD` → one `CONFIRMED` transaction with the email as evidence; an SMS for it arriving later attaches by ref/window and does not create a second one.
+- AC-031-9 Email first, its SMS 30 min later → the SMS creates the transaction, the email attaches as evidence, and the `EMAIL_ONLY` item is `AUTO_CLOSED`.
+- AC-031-10 SMS-only mode (no email records at all): every SMS scenario above gives the same result as with Gmail connected.
 
 **Tasks**
 - [ ] Migration
@@ -745,13 +800,13 @@ CREATE UNIQUE INDEX ux_evidence_record ON transaction_evidence(parsed_record_id)
 
 **Depends on:** 031
 
-**Data** — `V9__review.sql`: `review_item` (HLD §4.7) with `transaction_id` nullable, `raw_message_id` nullable, `dedup_key TEXT UNIQUE` (so the same question is never opened twice).
+**Data** — `review_item` **already exists** (created by SPEC-015 as `V6__review_item.sql`, with all review types and `dedup_key UNIQUE`); this spec adds the FK to `transaction` and the API. The V6 `type` CHECK and `ReviewService.ReviewType` do **not** yet include `EMAIL_ONLY` and `BALANCE_STALE`: the first spec that opens them (031 / 035) adds them in a new migration. Originally planned as `V9__review.sql`: `review_item` (HLD §4.7) with `transaction_id` nullable, `raw_message_id` nullable, `dedup_key TEXT UNIQUE` (so the same question is never opened twice).
 
 **Payload shapes**
 
 | Type | `payload` | Allowed `resolution` |
 |---|---|---|
-| `AMBIGUOUS_MATCH` | `{transactionId, candidateIds[]}` | `{action:"MERGE", into:<id>}` or `{action:"KEEP_SEPARATE"}` |
+| `AMBIGUOUS_MATCH` | `{transactionId?, parsedRecordId?, candidateIds[]}` (`parsedRecordId` when the record is an email) | `{action:"MERGE", into:<id>}` or `{action:"KEEP_SEPARATE"}` |
 | `UNPARSED` | `{rawMessageId}` | `{action:"MANUAL", fields:{...}}` or `{action:"IGNORE"}` |
 | `LOW_CONFIDENCE` | `{parsedRecordId, fields}` | `{action:"CONFIRM"}` / `{action:"CORRECT", fields}` / `{action:"IGNORE"}` |
 | `UNKNOWN_CATEGORY` | `{transactionId, suggestion?}` | `{categoryId, scope:"THIS"\|"ALWAYS", applyPast?:bool}` |
@@ -759,6 +814,8 @@ CREATE UNIQUE INDEX ux_evidence_record ON transaction_evidence(parsed_record_id)
 | `BALANCE_GAP` | `{accountId, from, to, expectedPaise, actualPaise}` | `{action:"ACK"}` or `{action:"ADD_MANUAL", fields}` |
 | `ORPHAN_OVERRIDE` | `{overrideId}` | `{action:"DROP"}` or `{action:"REAPPLY", transactionId}` |
 | `INSTALMENT_AMBIGUOUS` | `{transactionId?, rawMessageId?, candidateInstalmentIds[]}` | `{instalmentId}` or `{action:"NONE"}` |
+| `EMAIL_ONLY` | `{parsedRecordId, rawMessageId, candidateIds[]}` | `{action:"ADD"}`, `{action:"LINK", transactionId}` or `{action:"IGNORE"}` |
+| `BALANCE_STALE` | `{accountId, lastBalanceAt?, staleDays}` | `{action:"ACK"}` (re-opens if still stale after another `staleDays`) |
 | `SIP_SCHEDULE_SUGGESTION` | `{transactionId?, rawMessageId?, suggestion:{name, type, amountPaise, accountId?, scheduleDay}}` | `{action:"CREATE_SCHEDULE", investment:{…}}`, `{action:"LINK", investmentId}` or `{action:"NOT_INVESTMENT"}` |
 
 **API**
@@ -819,7 +876,7 @@ CREATE UNIQUE INDEX ux_evidence_record ON transaction_evidence(parsed_record_id)
 
 ### SPEC-035 — Balance check
 
-**Goal:** Detect missing or misread messages using the balance printed in bank SMS. HLD §4.9.
+**Goal:** Detect missing or misread messages using the balance printed in bank SMS. In SMS-only mode (the default) there is no second source to cross-check, so this check is **mandatory on every scan**. HLD §4.9, D-27.
 
 **Depends on:** 031, 033
 
@@ -827,13 +884,20 @@ CREATE UNIQUE INDEX ux_evidence_record ON transaction_evidence(parsed_record_id)
 - R-035-1 Per account, take confirmed+pending transactions ordered by `txn_time` that carry `balance_after_paise`.
 - R-035-2 For each consecutive pair (A, B) with balances: `expected = A.balance + Σ CR − Σ DR` over transactions strictly after A up to and including B. If `expected ≠ B.balance` → review `BALANCE_GAP` with both values and the period.
 - R-035-3 Hidden reversals are **included** in this sum (money did move).
-- R-035-4 Runs at the end of each scan (SPEC-036) for transactions touched since the last check.
+- R-035-4 Runs at the end of **every** scan (SPEC-036), in both modes, for transactions touched since the last check. It is mandatory: no setting turns it off. If the check itself fails, the scan is `PARTIAL` and the problem push is sent (R-036-6).
 - R-035-5 A gap that becomes consistent after new data arrives → its review item `AUTO_CLOSED`.
+- R-035-6 Gap and stale checks apply to `SAVINGS` accounts only: credit-card SMS print the available *limit*, which is not a balance.
+- R-035-7 **Stale balance:** a savings account that has transactions but whose newest balance-bearing transaction is older than `balance.staleDays` (default 14; new setting added by this spec), or which has none at all for that long → review `BALANCE_STALE` (dedup key `BALANCE_STALE:<accountId>`). Auto-closes when a balance-bearing SMS arrives. Accounts with no transactions in the period are not flagged.
+- R-035-8 Each account exposes its check status (`OK`, `GAP`, `STALE`) and the date of its last balance-bearing SMS (Accounts screen, scan report).
 
 **Acceptance criteria**
 - AC-035-1 Balances 10,000 → (−450) → 9,550 → no gap.
 - AC-035-2 Balances 10,000 → (−450) → 9,000 → `BALANCE_GAP` expected 9,550 actual 9,000.
 - AC-035-3 A late SMS for the missing −550 arrives → gap auto-closes.
+- AC-035-4 Savings account with transactions but last balance SMS 20 days ago, `staleDays` 14 → one `BALANCE_STALE`; scanning again → still one.
+- AC-035-5 A balance-bearing SMS then arrives → the `BALANCE_STALE` item is `AUTO_CLOSED`, status `OK`.
+- AC-035-6 A credit-card account never gets `BALANCE_GAP` or `BALANCE_STALE`.
+- AC-035-7 With email off, every scan records that the balance check ran (scan step result), whatever else failed.
 
 **Tasks**
 - [ ] Checker + tests
@@ -842,11 +906,11 @@ CREATE UNIQUE INDEX ux_evidence_record ON transaction_evidence(parsed_record_id)
 
 ### SPEC-036 — Scheduler, scan runs, report, push
 
-**Goal:** The daily job: pull email, process, check, report, notify. HLD §4.9.
+**Goal:** The daily job: (pull email, only if connected), process, check balances, report, notify. Works fully in SMS-only mode. HLD §4.9, D-27.
 
-**Depends on:** 020, 033 (and 035 when done)
+**Depends on:** 033, 035 · SPEC-020 optional (its mail step is skipped when it isn't built or Gmail isn't connected)
 
-**Data** — `V11__scan_run.sql`: `scan_run` (HLD §4.7) + `trigger TEXT` (`CRON|MANUAL|STARTUP`).
+**Data** — `V11__scan_run.sql`: `scan_run` (HLD §4.7) + `trigger TEXT` (`CRON|MANUAL|STARTUP`) + `source_mode TEXT` (`SMS_ONLY|SMS_AND_EMAIL`, the mode at the start of the run) + `mail_status TEXT` (null in SMS-only) + `steps JSONB` (result per step).
 
 **API**
 - `GET /api/v1/scan-runs/latest`, `GET /api/v1/scan-runs?cursor=`
@@ -854,17 +918,19 @@ CREATE UNIQUE INDEX ux_evidence_record ON transaction_evidence(parsed_record_id)
 
 **Rules**
 - R-036-1 Server cron = `scan.cron` shifted by `scan.serverDelayMinutes`, in `scan.zone`. Re-registered on `SettingsChanged(scan.*)` without restart.
-- R-036-2 Steps: mail fetch → `processPending()` → balance check → build report → push. Each step's failure is recorded; later steps still run where possible.
+- R-036-2 Steps: mail fetch (**only if Gmail is `CONNECTED`**; otherwise recorded as `SKIPPED_SMS_ONLY`) → `processPending()` → balance check (**always**, R-035-4) → build report → push. Each step's failure is recorded; later steps still run where possible. A failing mail step makes the run `PARTIAL` but never stops SMS processing or the balance check.
 - R-036-3 Only one scan at a time (same advisory lock family).
-- R-036-4 Report = counts (new SMS, new emails, transactions created/merged, review opened, errors), spend for the day, open review count, and **investments**: instalments confirmed in the run (count + Σ), due in the next 7 days (count + Σ), and missed (newly missed in the run + open missed count).
-- R-036-5 Push via FCM to every non-revoked device with an `fcm_token`: title "Hishaab daily scan", body e.g. "12 new · ₹3,420 spent · 1 SIP confirmed · 2 need review" (add "· 1 SIP missed" when any). No merchant or fund names in the push text.
+- R-036-4 Report = **mode** (`SMS only` / `SMS + email`, plus Gmail status and last fetch time when connected), counts (new SMS, new emails, transactions created/merged, review opened, errors), balance-check result (accounts `OK` / `GAP` / `STALE`), spend for the day, open review count, and **investments**: instalments confirmed in the run (count + Σ), due in the next 7 days (count + Σ), and missed (newly missed in the run + open missed count).
+- R-036-5 Push via FCM to every non-revoked device with an `fcm_token`: title "Hishaab daily scan", body e.g. "12 new · ₹3,420 spent · 1 SIP confirmed · 2 need review · SMS only" (add "· 1 SIP missed" when any; the last part is the mode: "SMS only" or "SMS + email", or "email needs reconnect"). No merchant or fund names in the push text.
 - R-036-6 A scan with `errors > 0` or a failed step also sends a push "Scan had problems — open Sync status".
 
 **Acceptance criteria**
 - AC-036-1 Changing `scan.cron` reschedules (verify via scheduler registry in test).
-- AC-036-2 A run with a mail failure still processes SMS and records `status=PARTIAL`.
+- AC-036-2 With Gmail connected, a run whose mail fetch fails still processes SMS, runs the balance check and records `status=PARTIAL`.
 - AC-036-3 Report numbers match DB counts for the run window.
 - AC-036-4 Push sender is called once per device with the expected text (FCM mocked).
+- AC-036-6 **Full scan with email off:** no Gmail connection, new SMS uploaded → the run processes them, runs the balance check, builds the report and pushes; the mail source is never called; `scan_run.status=SUCCESS`, `source_mode=SMS_ONLY`, `emails_in=0`, mail step `SKIPPED_SMS_ONLY`; the report and push say "SMS only"; `GET /summary` returns `sourceMode=SMS_ONLY`.
+- AC-036-7 Gmail status `REAUTH_REQUIRED` → mail step skipped with a warning, run `PARTIAL`, push ends "email needs reconnect"; everything else as in AC-036-6.
 - AC-036-5 With one instalment confirmed in the run, one due in 3 days and one newly missed, the report shows confirmed 1, upcoming 1, missed 1 with the right sums.
 
 **Tasks**
@@ -947,7 +1013,8 @@ Response:
 { "spentPaise": 342000, "receivedPaise": 5000000, "refundsPaise": 12000, "investedPaise": 300000,
   "pendingPaise": 124000, "pendingCount": 2,
   "groups": [ { "key": "...", "label": "Food", "spentPaise": 81200, "count": 23 } ],
-  "lastSyncAt": "...", "lastScanAt": "...", "openReviewCount": 3 }
+  "lastSyncAt": "...", "lastScanAt": "...", "openReviewCount": 3,
+  "sourceMode": "SMS_ONLY", "mail": { "status": "DISCONNECTED", "lastFetchAt": null } }
 ```
 
 **Rules (the definition of "spend")**
@@ -957,6 +1024,7 @@ Response:
 - R-041-6 `investedPaise` = Σ over instalments with status `CONFIRMED` or `MARKED_PAID` and `due_date` in the period (amount = the linked bank-debit transaction's amount if any, else `expected_paise`), plus `CONFIRMED` `INVESTMENT` transactions not linked to any instalment. Never part of `spentPaise`.
 - R-041-4 `pendingPaise` = Σ amount of `PENDING` (shown separately, never in totals).
 - R-041-5 Chat (SPEC-070) must call this service, not recompute.
+- R-041-7 `sourceMode` and `mail` come from SPEC-020's `MailConnectionService`; until SPEC-020 is built they are always `SMS_ONLY` / `DISCONNECTED`. Totals are computed the same way in both modes (emails only ever add evidence).
 
 **Acceptance criteria**
 - AC-041-1 Fixture month with spends, a refund, a CC payment, a transfer, a reversal, a pending and two SIP instalments (one with a bank debit, one only fund-house confirmed) → totals equal hand-computed values in the test; SIPs appear only in `investedPaise`.
@@ -1234,6 +1302,7 @@ Settings (SPEC-001 keys): `investments.windowDaysBefore` = `2`, `investments.win
 **Rules**
 - R-050-1 Only `hishaab.auth.allowedEmail` (env `HISHAAB_ALLOWED_EMAIL`) may log in; any other Google account → 403 and nothing stored.
 - R-050-2 Google ID tokens verified for signature, `aud` = our client IDs, `email_verified=true`.
+- R-050-2a Login asks only for identity scopes (`openid email profile`), **never Gmail access**. Gmail is a separate, optional consent in SPEC-020.
 - R-050-3 JWT signed with a key from env (`HISHAAB_JWT_KEY`); never a hard-coded key.
 - R-050-4 Refresh token reuse after rotation → revoke the whole family, 401.
 - R-050-5 The form-login endpoint and its security config bean exist **only** under `@Profile("dev")`. In `prod`, `/login` with a password returns 404.
@@ -1408,7 +1477,7 @@ record LlmResult<T>(T value, double confidence, String model, long latencyMs, lo
 - GitHub Actions: build + `./mvnw verify` on every push; build/push image and deploy on `main`.
 
 **Rules**
-- R-090-1 All secrets via env file on the VM, never in the repo.
+- R-090-1 All secrets via env file on the VM, never in the repo. Includes `HISHAAB_TOKEN_ENC_KEY` (encrypts the optional Gmail token, SPEC-020); the app starts without it and only refuses to *connect* Gmail when it is missing.
 - R-090-2 Postgres port never exposed publicly.
 - R-090-3 `prod` profile active in the container.
 - R-090-4 Restore procedure documented in `infra/backup/RESTORE.md` and tested once before go-live.
@@ -1475,6 +1544,18 @@ record LlmResult<T>(T value, double confidence, String model, long latencyMs, lo
 | 2026-11-18 | 001/011/020 | Sender allowlists open by default: `senders.allowlist = ["*"]` (V5 migration; only replaces the untouched `[]`), `mail.fromAllowlist = ["*"]`. `"*"` is an allowed allowlist entry. **Consequence:** the worker gets `["*"]` from `/device/config`, so it must apply its own bank/fund-house filter or it would upload every SMS (OTPs, personal) | Q-8: fund-house sender IDs unknown; filtering moves to the sync job | Ayan |
 | 2026-11-18 | 030 | Card aliases + account merge (R-030-5..7) | Q-9: debit-card messages carry the card last 4, not the account's | Ayan |
 | 2026-11-18 | all | Migration numbers in unbuilt specs are placeholders; the next free version is used at build time | Specs are built out of numeric order, so fixed numbers collide | Claude |
+| 2026-11-18 | 015 | `review_item` table + minimal `ReviewService.open/deleteOpenFor…` built now (`V6`), because R-015-6 must open UNPARSED items before SPEC-033 exists; SPEC-033 adds the API, resolution handlers and the `transaction` FK | Dependency gap in the plan; no behaviour invented beyond the spec's own payload shapes | Claude |
+| 2026-11-18 | 015 | Listeners use Spring `@Async` + `@TransactionalEventListener(AFTER_COMMIT)` instead of Modulith `@ApplicationModuleListener` | That annotation needs `spring-modulith-events-api`, which is not on the approved list (§2.2). Same semantics here. Add the dependency later if the event publication registry is wanted | Claude — **Ayan: add dependency?** |
+| 2026-11-18 | 015 | Advisory lock = session-level `pg_try_advisory_lock` on a dedicated pooled connection held for the run (`AdvisoryLocks.PROCESSING`); per-message work uses its own transactions. `reprocess`/`reprocessAll` wait for the lock (60 s / 10 min) instead of skipping | R-015-2 + R-015-4 together need a lock that outlives single transactions; rebuilds must not silently do nothing | Claude |
+| 2026-11-18 | 015 | A trigger that finds the lock taken returns immediately; the running processor re-checks for `NEW` after releasing the lock (up to 5 rounds) so no message is stranded. Messages are picked by `status = NEW` only; `ERROR` needs an explicit reprocess | Completes R-015-2 without a queue; no retry storms | Claude |
+| 2026-11-18 | 015 | Classifier and template disagree on record type (`TRANSACTION` vs `INVESTMENT_CONFIRMATION`) → UNPARSED review (reason `TEMPLATE_CLASS_MISMATCH`), never a guess. "UNKNOWN with an amount" uses the classifier's own `amount` fragment (`ClassifyService.mentionsAmount`) | H-9; one definition of "looks like money" | Claude |
+| 2026-11-18 | 015 | `hishaab.processing.auto-trigger` (default `true`, `false` in the test profile) switches off the upload/startup triggers so tests drive processing deterministically; `ProcessingAutoTriggerIT` proves the wiring | The test DB is shared across Spring contexts | Claude |
+| 2026-11-18 | all | **Email is optional; SMS-only is the default** (HLD D-27). The app is fully usable without Gmail; mail is fetched only while a valid connection exists; connect/disconnect any time, with status + last fetch visible | Feature change requested by Ayan | Ayan |
+| 2026-11-18 | 031 | **An email never creates a transaction**: it attaches by ref/window or opens `EMAIL_ONLY` (add / link / ignore); open `EMAIL_ONLY` items auto-attach when the SMS arrives later (R-031-9/10). AC-031-3 and AC-031-5 changed accordingly | The only way to guarantee that enabling email never duplicates SMS transactions, and keeps SMS the single source of truth | Claude — **Ayan to confirm** |
+| 2026-11-18 | 020 | Gmail connection state lives in `mail_connection` (one row; token AES-GCM-encrypted with `HISHAAB_TOKEN_ENC_KEY`), not in `settings`; there is no `mail.enabled` flag. Disconnect = stop + revoke at provider + delete token; stored emails and their evidence stay. Backfill = `backfill.days` on every (re)connect | "On" must mean "has a valid token", and disconnecting must leave nothing usable behind | Claude |
+| 2026-11-18 | 035 | Balance check is mandatory on every scan in both modes; savings accounts only; new `BALANCE_STALE` review after `balance.staleDays` (14) without a balance-bearing SMS | No second source in SMS-only mode; card "available limit" is not a balance | Claude |
+| 2026-11-18 | 036 | SPEC-036 no longer depends on SPEC-020; `scan_run` records `source_mode`, `mail_status` and per-step results; report and push name the mode; `/summary` returns `sourceMode` + `mail` | Mode must be visible on the dashboard and in every report | Claude |
+| 2026-11-18 | 050 | Login never requests Gmail scopes; Gmail is a separate optional consent | Keeps email truly opt-in | Claude |
 | | | | | |
 
 ---
@@ -1484,8 +1565,8 @@ record LlmResult<T>(T value, double confidence, String model, long latencyMs, lo
 | # | Question | Blocks | Owner |
 |---|---|---|---|
 | Q-1 | ~~Provide sample SMS + emails~~ — received 2026-11-18 (shape reference only; no SBI Card) | SPEC-013 | Ayan |
-| Q-2 | Gmail API or IMAP (HLD O-02) | SPEC-020 | Ayan |
-| Q-3 | Bank email sender addresses for `mail.fromAllowlist` | SPEC-020 | Ayan |
+| Q-2 | Gmail API or IMAP (HLD O-02) — **only needed for the optional Gmail feature; blocks nothing else** | SPEC-020 real client | Ayan |
+| Q-3 | Bank email sender addresses for `mail.fromAllowlist` — optional; default `["*"]` | SPEC-020 (optional) | Ayan |
 | Q-4 | Sender ID middle parts for `senders.allowlist` (from your inbox) | SPEC-011 go-live | Ayan |
 | Q-5 | super.money credit card in scope? | SPEC-030 | Ayan |
 | Q-6 | Subdomain | SPEC-090 | Ayan |

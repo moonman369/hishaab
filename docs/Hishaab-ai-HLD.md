@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Product** | Hishaab.ai — personal spend tracker built from bank SMS and email |
+| **Product** | Hishaab.ai — personal spend tracker built from bank SMS (email optional) |
 | **Owner** | Ayan (moonman) |
 | **Status** | Draft v1.1 — single source of truth for the design |
 | **Last updated** | 17 Nov 2026 |
@@ -32,15 +32,15 @@
 
 ## 1. What Hishaab.ai is
 
-Hishaab.ai reads the transaction messages your banks already send you (SMS and email), turns them into a clean list of transactions, and shows them on a dashboard you can sort, filter and talk to.
+Hishaab.ai reads the transaction messages your banks already send you (SMS, plus email if you choose to connect Gmail), turns them into a clean list of transactions, and shows them on a dashboard you can sort, filter and talk to.
 
 ### 1.1 Goals
 
 | # | Goal | What it means in practice |
 |---|---|---|
 | G1 | **Reliable data** | Every real transaction is stored exactly once. Every number can be traced back to the message that proves it. |
-| G2 | **No duplicates** | The same payment seen in SMS *and* email becomes one transaction. Two real ₹50 payments stay two. |
-| G3 | **Automatic input** | Reads bank SMS (on the phone) and bank emails (on the server). No manual typing needed. |
+| G2 | **No duplicates** | Each real payment is one transaction. If Gmail is connected, the email for a payment already seen by SMS becomes extra proof, never a second transaction. Two real ₹50 payments stay two. |
+| G3 | **Automatic input** | Reads bank SMS on the phone. Optionally also bank emails on the server, if you connect Gmail. No manual typing needed. |
 | G4 | **Daily scan at a set time** | You choose the time. Late or missed runs catch up on their own. |
 | G5 | **Ask when unsure** | Anything ambiguous goes to a daily **Review** list instead of being guessed. |
 | G6 | **Mobile first, web too** | Android app + web app, same backend, same data. |
@@ -53,7 +53,7 @@ Hishaab.ai reads the transaction messages your banks already send you (SMS and e
 |---|---|
 | Banks: **Axis**, **SBI** (savings) | UPI app notifications (PhonePe, GPay, super.money) |
 | Cards: Axis credit card (no SBI Card, see D-23) | Cash and wallets (Paytm, Amazon Pay) |
-| Sources: bank **SMS** + bank **email** (Gmail), plus mutual-fund house (AMC) SIP SMS + email | Statement import (CSV/PDF) |
+| Sources: bank + fund-house **SMS** (always; the source of truth). **Email (Gmail) is optional**, off by default (D-27) | Statement import (CSV/PDF) |
 | **Investments:** SIP, recurring deposit, FD, PPF schedules you enter; instalments auto-confirmed from messages (§4.13) | Portfolio value, NAV tracking, returns, tax reports |
 | First import: **last 1 month** | Budgets, recurring-payment detection |
 | Screens: Sync, Transactions, Review, Dashboard | Chat (built last, after data is trusted) |
@@ -100,6 +100,7 @@ Every big decision, in one place. If code and this table disagree, update one of
 | D-24 | **Investments are not spend.** A SIP/RD/FD debit becomes kind `INVESTMENT`; schedules you enter generate expected **instalments**, which messages only *confirm*. A fund-house allotment message is evidence for an instalment and **never creates a transaction** on its own. | Counting SIPs as spend would inflate spend every month; counting both the bank debit and the AMC allotment would count each SIP twice. | Treating SIPs as a spend category; creating a transaction per allotment message |
 | D-25 | **Parser golden set is synthetic**, modelled on the shapes of your real messages; no real names, refs, folios, balances or links in the repo | Real samples carry personal data; the shapes are what the templates need. | Committing masked copies of real messages |
 | D-26 | **Sender allowlists open (`"*"`) for now**; the sync worker filters bank + fund-house messages on its side | Fund-house sender IDs and email addresses vary and aren't pinned yet; the classifier still decides what counts. | Blocking fund-house messages until every ID is collected |
+| D-27 | **SMS-only by default; Gmail is optional.** SMS is the only source of truth and the app is fully usable without Gmail. You can connect or disconnect Gmail any time. **An email never creates a transaction on its own**: it attaches as extra evidence to an SMS transaction (same ref, or same amount/account/direction within the window); an email with no SMS match becomes an `EMAIL_ONLY` review item. Without a second source, the **balance check runs on every scan** and accounts with no balance-bearing SMS for a long time are flagged. | Fewer moving parts and no Google consent needed to use the app; turning email on later can never duplicate what SMS already found. | Gmail required; emails creating their own transactions |
 
 ---
 
@@ -119,7 +120,7 @@ flowchart LR
     end
 
     subgraph Cloud["External services"]
-        Gmail[("Gmail")]
+        Gmail[("Gmail<br/>(optional)")]
         Gemini["Gemini API<br/>(paid tier)"]
         GAuth["Google Sign-In"]
         FCM["Firebase Cloud<br/>Messaging"]
@@ -140,7 +141,7 @@ flowchart LR
     Worker -- "raw bank SMS<br/>(device token)" --> Nginx
     App -- "REST + SSE" --> Nginx
     Browser -- "HTTPS" --> Nginx
-    API -- "read bank emails" --> Gmail
+    API -.->|"read bank emails<br/>(only if connected)"| Gmail
     API -- "categorise / parse fallback / chat" --> Gemini
     API -- "verify login" --> GAuth
     API -- "daily report push" --> FCM
@@ -152,7 +153,7 @@ flowchart LR
 | Part | Job | Lives on |
 |---|---|---|
 | **Sync Worker** | Reads new bank SMS since last sync and uploads them raw. Nothing else. | Android phone (inside the app) |
-| **Backend** | Stores raw messages, pulls emails, parses, dedups, categorises, builds the daily report, answers chat. | Oracle VM |
+| **Backend** | Stores raw messages, parses, dedups, categorises, checks balances, builds the daily report, answers chat. Pulls bank emails only if you connected Gmail. | Oracle VM |
 | **UI** | Shows the dashboard, transactions, review list, settings and chat. | Web (browser) + Android app |
 
 ### 3.3 One day in the life of a transaction
@@ -166,22 +167,24 @@ sequenceDiagram
     participant Phone as SMS inbox
     participant W as Sync Worker
     participant B as Backend
-    participant G as Gmail
+    participant G as Gmail (optional)
     participant U as You (app)
 
     Bank->>Phone: SMS "Rs 450 debited... UPI Ref 4321..."
-    Bank->>G: Email alert for same payment
     Note over W: At your scan time (e.g. 22:00)
     W->>Phone: Read bank SMS newer than cursor
     W->>B: POST /ingest/sms (raw messages)
     B-->>W: Accepted IDs
     W->>W: Move cursor forward
-    B->>B: Parse SMS → candidate transaction
+    B->>B: Parse SMS → transaction (SMS is the source of truth)
     Note over B: Daily job (scan time + 15 min)
-    B->>G: Fetch bank emails since last run
-    B->>B: Parse email → match with SMS (same UPI Ref) → one transaction
-    B->>B: Categorise, build daily report
-    B->>U: Push: "12 new · 2 need review"
+    opt Gmail connected
+        Bank->>G: Email alert for same payment
+        B->>G: Fetch bank emails since last run
+        B->>B: Parse email → attach to the SMS transaction as extra proof (never a new one)
+    end
+    B->>B: Balance check, categorise, build daily report
+    B->>U: Push: "12 new · 2 need review · SMS only"
     U->>B: Resolve review items
 ```
 
@@ -199,7 +202,7 @@ sequenceDiagram
 | Database | Postgres 16+, Flyway for migrations |
 | API docs / client | springdoc-openapi → generates TypeScript client for both apps |
 | Scheduling | Spring `TaskScheduler` + `CronTrigger`, cron stored in DB |
-| Email | Gmail API (read-only) — see open item O-02 |
+| Email (optional) | Gmail, read-only, only after you connect it in Settings. Gmail API vs IMAP still open (O-02), not blocking |
 | Push | Firebase Cloud Messaging (FCM) |
 | Packaging | Docker image, run with Docker Compose |
 
@@ -220,7 +223,7 @@ flowchart TB
 
     subgraph Core["Core modules"]
         Ingest["ingest<br/>store raw SMS / email"]
-        Mail["mail<br/>Gmail fetcher"]
+        Mail["mail (optional)<br/>Gmail connection + fetcher"]
         Classify["classify<br/>is it a real txn?"]
         Parse["parse<br/>templates + LLM fallback"]
         Match["match<br/>dedup + linking"]
@@ -239,7 +242,7 @@ flowchart TB
     end
 
     IngestAPI --> Ingest
-    Sched --> Mail --> Ingest
+    Sched -.->|"only if Gmail connected"| Mail --> Ingest
     Ingest --> Classify --> Parse --> Match --> Categ
     Match --> Review
     Categ --> Review
@@ -256,10 +259,10 @@ flowchart TB
 | Module | Owns |
 |---|---|
 | `ingest` | Accepting raw messages, hash IDs, rejecting repeats |
-| `mail` | Gmail login token, fetching bank emails by sender, turning them into raw messages |
+| `mail` | **Optional.** Gmail connection (connect, status, disconnect = revoke + delete token), fetching bank emails, turning them into raw messages. Does nothing while Gmail is not connected |
 | `classify` | Deciding: completed transaction, or OTP / promo / reminder / failed / balance alert |
 | `parse` | Bank-specific regex templates; LLM fallback for unknown formats |
-| `match` | Dedup and linking (SMS↔email, refunds, transfers, card bill payments) |
+| `match` | Dedup and linking (SMS ref/look-alike rules, email-as-evidence, refunds, transfers, card bill payments) |
 | `categorise` | Category rules, merchant aliases, AI suggestions |
 | `review` | The clarification queue and your answers |
 | `query` | All reads for the UI: lists, filters, summaries, totals |
@@ -270,7 +273,7 @@ flowchart TB
 
 ### 4.3 Processing pipeline
 
-Every message, SMS or email, goes through the same steps.
+Every message goes through the same steps, whether it is an SMS or (with Gmail connected) an email.
 
 <sub>Diagram file: `diagrams/04-ingestion-pipeline.mmd`</sub>
 
@@ -315,7 +318,7 @@ Three layers. Each one catches a different kind of duplicate.
 | Layer | Catches | Rule |
 |---|---|---|
 | **L1 — same message** | The worker uploading the same SMS twice | Primary key = `sha256(sender + body + received_at)`. Database rejects repeats. For email, the Gmail message ID. |
-| **L2 — SMS ↔ email** | Same payment reported by SMS and by email | Same `ref_no` → same transaction. No ref → match on amount + direction + account + time window. |
+| **L2 — SMS ↔ email** (only with Gmail connected) | Same payment reported by SMS and by email | Same `ref_no` → same transaction. No ref → match on amount + direction + account + time window. **An email never creates a transaction**: no match → `EMAIL_ONLY` review item; if the SMS arrives later, the email attaches and the item closes itself. |
 | **L3 — look-alike payments** | Two real ₹50 payments at the same shop, same day | **Two messages from the same source are always separate transactions unless they share a `ref_no`.** |
 
 <sub>Diagram file: `diagrams/05-dedup-matching.mmd`</sub>
@@ -325,21 +328,25 @@ flowchart TD
     S["New parsed record"] --> A{"Has ref_no?"}
     A -- yes --> B{"Existing txn with<br/>same ref_no?"}
     B -- yes --> M1["Attach as evidence<br/>to that txn"]
-    B -- no --> N1["Create new txn"]
+    B -- "no, record is an SMS" --> N1["Create new txn"]
     A -- no --> C["Find candidates from the OTHER source:<br/>same amount, direction, account,<br/>time within window"]
     C --> D{"How many<br/>candidates?"}
-    D -- "0" --> N2["Create new txn"]
+    D -- "0, record is an SMS" --> N2["Create new txn"]
+    D -- "0, record is an email" --> E1["No txn. Review: EMAIL_ONLY<br/>(add / link / ignore)"]
     D -- "1, strong score" --> M2["Attach as evidence"]
-    D -- "1 weak, or 2+" --> R["Create txn as 'pending'<br/>+ Review item: 'Same as this one?'"]
+    D -- "1 weak, or 2+" --> R["SMS: create txn as 'pending'<br/>Email: no txn<br/>+ Review item: 'Same as this one?'"]
+    B -- "no, record is an email" --> E1
 ```
 
 Matching settings (stored in `settings`, tuned after real data):
 
 | Setting | Start value |
 |---|---|
-| SMS ↔ email time window | 3 hours (emails often arrive late) |
+| SMS ↔ email time window (only with Gmail) | 3 hours (emails often arrive late) |
 | Strong match score | all of: amount, direction, account last 4, channel equal |
 | Same-source merge | never, unless `ref_no` matches |
+
+**Turning Gmail on later** backfills the last `backfill.days` of email through the same rules, so existing SMS transactions only gain evidence; the transaction count cannot go up because of email.
 
 **One transaction, many proofs.** A transaction has one or more **evidence** rows (the messages that report it). Merging or splitting only moves evidence links, so it can always be undone.
 
@@ -541,6 +548,7 @@ erDiagram
         timestamptz finished_at
         int sms_in
         int emails_in
+        string source_mode "SMS_ONLY SMS_AND_EMAIL"
         int txns_created
         int txns_merged
         int review_opened
@@ -589,6 +597,15 @@ erDiagram
         string status "SCHEDULED CONFIRMED MARKED_PAID MISSED SKIPPED FAILED"
         string status_source "AUTO USER"
     }
+    MAIL_CONNECTION {
+        string provider "GMAIL_API or IMAP"
+        string status "DISCONNECTED CONNECTED ERROR REAUTH_REQUIRED"
+        string account_masked
+        bytes token_encrypted "null when disconnected"
+        timestamptz connected_at
+        timestamptz last_fetch_at
+        string last_error
+    }
     INSTALMENT_EVIDENCE {
         uuid instalment_id FK
         uuid transaction_id FK "bank debit, if any"
@@ -634,6 +651,8 @@ stateDiagram-v2
 | `UNKNOWN_CATEGORY` | "What is this payment to Rahul K?" |
 | `UNKNOWN_KIND` | "Is this a transfer between your accounts?" |
 | `BALANCE_GAP` | "Your SBI balance doesn't add up between 12 and 14 Nov. A message may be missing." |
+| `BALANCE_STALE` | "No SMS with your Axis balance for 21 days, so missing messages can't be detected for this account." |
+| `EMAIL_ONLY` | "This email shows ₹450 to Swiggy, but there's no matching SMS. Add it, link it to a transaction, or ignore?" (Gmail only) |
 
 Pending transactions **are shown** in lists (marked "needs review") but are **left out of totals** until confirmed. The dashboard shows how much money is pending, so totals are never silently wrong.
 
@@ -653,20 +672,25 @@ sequenceDiagram
 
     S->>S: Cron fires (your scan time + 15 min)
     S->>S: Take advisory lock
-    S->>M: Fetch bank emails since last run
-    M->>P: New raw emails
-    P->>P: Process any unprocessed SMS + emails
+    opt Gmail connected and valid
+        S->>M: Fetch bank emails since last run
+        M->>P: New raw emails
+    end
+    P->>P: Process any unprocessed messages
     P->>Q: Open review items
-    P->>P: Balance check per account
+    P->>P: Balance check per account (every scan, mandatory)
+    P->>Q: Flag accounts with no balance SMS for a long time
     S->>R: Build report for this run
-    R->>N: "12 new · ₹3,420 spent · 2 need review"
+    R->>N: "12 new · ₹3,420 spent · 2 need review · SMS only"
     S->>S: Save scan_run, release lock
 ```
 
 - The scan time is stored as a cron string in `settings` and changed from the Settings screen. No redeploy needed.
-- SMS are processed **as soon as they arrive**. The daily job pulls emails, re-runs matching and sends the report.
+- SMS are processed **as soon as they arrive**. The daily job pulls emails (only if Gmail is connected), re-runs matching, checks balances and sends the report.
+- **The report shows the mode**: "SMS only" or "SMS + email", plus the Gmail status and last fetch time when connected. A failing Gmail connection never stops the scan; it shows as a warning.
 - **Investments in the report:** instalments confirmed in this run, instalments due in the next 7 days, and instalments that became missed (§4.13).
-- **Balance check:** most bank SMS include the available balance. The backend compares it with its own running balance. A gap means a missed or misread message, and creates a `BALANCE_GAP` review item. This is the strongest reliability check in the system.
+- **Balance check (mandatory, every scan):** many bank SMS include the available balance. The backend compares it with its own running balance. A gap means a missed or misread message, and creates a `BALANCE_GAP` review item. In SMS-only mode there is no second source to cross-check, so this is the main reliability check and cannot be turned off.
+- **Stale balance:** a savings account with no balance-bearing SMS for `balance.staleDays` (default 14) gets a `BALANCE_STALE` review item, because gaps can't be detected for it. Credit-card "available limit" is not a balance, so cards are not checked.
 
 ### 4.10 Chat
 
@@ -728,6 +752,7 @@ Rules:
 | Settings | `GET/PATCH /settings` (scan time, sender allowlist, thresholds) |
 | Chat | `POST /chat` (SSE), `GET /chat/sessions` |
 | Auth | `/oauth2/*`, `POST /auth/mobile/google`, `POST /auth/refresh`, `POST /devices`, `POST /api-tokens` |
+| Email (optional) | `GET/POST/DELETE /mail/connection` (status + last fetch, connect, disconnect), `GET /mail/oauth/callback` |
 | Ops | `/actuator/health` |
 
 The OpenAPI spec is generated from code and used to generate the TypeScript client (`packages/api`). Any backend change that breaks the apps shows up as a type error at build time.
@@ -738,6 +763,7 @@ The OpenAPI spec is generated from code and used to generate the TypeScript clie
 |---|---|
 | **Parser golden set** — synthetic SMS/emails per bank and fund house, modelled on the shapes of real samples (D-25), plus expected output | Banks change formats without notice. A failing test tells you which template broke. |
 | Dedup scenarios — SMS-only, email-only, both, late email, two look-alike payments, refund, card bill payment | The core promise (G1, G2) |
+| Optional-email scenarios — full scan with email off; turning Gmail on over existing SMS data adds evidence but **zero** transactions; disconnecting deletes the token | D-27 |
 | Rebuild test — wipe transactions, rebuild from raw + overrides, compare | D-06, D-22 |
 | Contract test — OpenAPI spec diff in CI | Apps don't break silently |
 
@@ -877,7 +903,7 @@ stateDiagram-v2
 2. Ask for SMS permission. Explain why on screen first.
 3. Ask to be excluded from battery optimisation (improves run reliability).
 4. **Backfill:** read the **last 1 month** of bank SMS and upload.
-5. Backend backfills the last 1 month of bank emails.
+5. *(Optional, any time later)* Connect Gmail in Settings → backend backfills the last 1 month of bank emails as extra evidence.
 6. First report shows: transactions found + review items.
 
 ### 5.7 Sender allowlist
@@ -984,21 +1010,21 @@ flowchart LR
     More --> Accts["Accounts"]
     More --> Inv["Investments<br/>(SIP, RD, FD, PPF)"]
     More --> Sync["Sync status<br/>& scan history"]
-    More --> Set["Settings<br/>(scan time, senders, theme)"]
+    More --> Set["Settings<br/>(scan time, senders, theme,<br/>email: connect / disconnect)"]
     Set --> Setup["Worker setup<br/>(mobile only)"]
 ```
 
 | Screen | Shows | Backend call |
 |---|---|---|
-| **Dashboard** | Spent / received this month, by category, top merchants, pending amount, freshness bar | `GET /summary` |
+| **Dashboard** | Spent / received this month, by category, top merchants, pending amount, freshness bar, **mode chip** ("SMS only" / "SMS + email", with a warning if Gmail needs attention) | `GET /summary` |
 | **Transactions** | Filterable, sortable list grouped by day | `GET /transactions` |
 | **Transaction detail** | All fields, category history, **the original SMS/email** | `GET /transactions/{id}` |
 | **Review** | Cards with one question each and quick answers | `GET /review`, `POST /review/{id}/resolve` |
 | **Categories & rules** | Category tree, rules, "apply to past" | `/categories`, `/rules` |
 | **Accounts** | Axis (savings + credit card), SBI; nickname, balance check status, **card aliases** (debit-card last 4 → account), merge | `/accounts` |
 | **Investments** | Schedules and instalment status (see §4.13) | `/investments`, `/instalments` |
-| **Sync status** | Last sync per device, last scan run, errors | `/scan-runs` |
-| **Settings** | Scan time, sender allowlist, theme, devices, API tokens | `/settings` |
+| **Sync status** | Last sync per device, last scan run (with its mode), errors, Gmail status + last fetch time | `/scan-runs`, `/mail/connection` |
+| **Settings** | Scan time, sender allowlist, theme, devices, API tokens; **Email (optional)**: connect Gmail, status, last fetch, disconnect | `/settings`, `/mail/connection` |
 | **Chat** (built last) | Conversation with streamed answers + "based on" filters | `POST /chat` |
 | **Worker setup** (mobile) | Permissions, battery exemption, sender picker, first backfill | Kotlin module + `/devices` |
 
@@ -1052,6 +1078,7 @@ flowchart LR
 |---|---|
 | **Always show freshness** | "Last synced 6h ago · 3 need review" at the top of the dashboard |
 | **Every transaction links to its proof** | Tap → see the original SMS/email |
+| **The active mode is always visible** | "SMS only" or "SMS + email" on the dashboard and in each daily report, so you know what the numbers are based on |
 | **Show where a category came from** | Small tag: *You*, *Rule*, *AI* |
 | **Pending is visible, never hidden** | "₹1,240 pending review" shown next to totals |
 | **Errors are loud** | Failed sync or scan shows a banner, not a silent empty screen |
@@ -1101,6 +1128,7 @@ Turn on 2-step verification on your Google account; it now protects your financi
 | Risk | Protection |
 |---|---|
 | OTPs and personal texts leaving the phone | Sender allowlist on the phone; only bank SMS are read |
+| Mailbox access | **Off by default.** Gmail is only read after you connect it (a separate consent from login; login never asks for Gmail access). Read-only scope; the token is stored encrypted; **disconnecting revokes the token at Google and deletes it**. Emails already stored stay (raw messages are immutable) |
 | Stolen phone uploads junk | Device token can only ingest; revoke from Settings |
 | LLM provider sees too much | Billed Gemini project; masking in `llm` gateway; AI only sees merchant-level data, never full message history |
 | Secrets in Git | `.env` files never committed; `.env.example` only; secret scanning in CI |
@@ -1155,10 +1183,11 @@ This database becomes your only financial record. Backups are not optional.
 ```mermaid
 flowchart LR
     P1["1 · Backend core<br/>raw storage, ingest API,<br/>Axis + SBI + fund-house templates,<br/>golden test set"] --> P2["2 · Sync Worker<br/>Kotlin module, cursor,<br/>device token, backfill"]
-    P2 --> P3["3 · Dedup + Review<br/>Gmail fetch, matching,<br/>review queue, daily report"]
+    P2 --> P3["3 · Dedup + Review<br/>matching, review queue,<br/>balance check, daily report"]
     P3 --> P4["4 · Web app<br/>dashboard, transactions,<br/>review, settings"]
     P4 --> P5["5 · Android UI<br/>same screens, push,<br/>offline cache"]
     P4 --> PI["4b · Investments<br/>schedules, instalments,<br/>SIP auto-confirm"]
+    P3 -.-> PM["Optional · Gmail<br/>connect, backfill,<br/>email as evidence"]
     P5 --> P6["6 · AI categorising<br/>rules from your edits,<br/>Gemini for unknowns"]
     P6 --> P7["7 · Chat<br/>tools over SQL"]
     P7 --> P8["Later<br/>UPI app notifications,<br/>budgets, recurring,<br/>statement import, cash"]
@@ -1166,7 +1195,7 @@ flowchart LR
 
 Chat comes last because it is only as good as the data under it.
 
-**MVP "done" means:** one month of real Axis + SBI data (plus your SIP instalments confirmed), with zero known duplicates, every transaction traceable to its message, the balance check passing for every account, and the review list empty after you answer it.
+**MVP "done" means (SMS-only):** one month of real Axis + SBI data (plus your SIP instalments confirmed), with zero known duplicates, every transaction traceable to its message, the balance check passing for every account, and the review list empty after you answer it.
 
 ---
 
@@ -1179,7 +1208,7 @@ Chat comes last because it is only as good as the data under it.
 | Bank changes SMS/email format | Transactions missed or misread | Golden test set; unparsed messages go to Review; balance check catches gaps |
 | Android delays or kills the worker | Late data | Cursor-based catch-up; battery exemption; "Sync now"; freshness banner |
 | Same-amount payments wrongly merged | Spend under-counted | Same-source never merged without ref no. (L3) |
-| SMS and email both missed | Transaction missing | Balance check; later, statement import |
+| An SMS is missed (SMS-only mode has no second source) | Transaction missing | Mandatory balance check every scan; `BALANCE_STALE` flag for accounts with no balance SMS; optional Gmail as extra evidence; later, statement import |
 | LLM gives a wrong category | Wrong category totals | AI only for unknown merchants; tagged "AI"; low confidence → Review |
 | Server outage | No sync | Phone keeps SMS in inbox; next run catches up |
 | Data loss on VM | Lose all history | Nightly encrypted backups, monthly restore test |
@@ -1189,7 +1218,7 @@ Chat comes last because it is only as good as the data under it.
 | ID | Item | Notes |
 |---|---|---|
 | O-01 | Subdomain | `<TBD>.moonman.in` |
-| O-02 | **Gmail access method** | Gmail API needs an OAuth app. If that app stays in Google's "Testing" mode, refresh tokens may expire after about a week, breaking daily email fetch. Options: move the OAuth app to production status, or use IMAP with an app password. Verify before building `mail`. |
+| O-02 | **Gmail access method** (only matters once you want email; blocks nothing else) | Gmail API needs an OAuth app. If that app stays in Google's "Testing" mode, refresh tokens may expire after about a week, breaking daily email fetch. Options: move the OAuth app to production status, or use IMAP with an app password. Verify before building `mail`. |
 | O-03 | Exact sender IDs for Axis, SBI and your fund houses | Allowlist open (`"*"`) for now (D-26); pin IDs later from your phone |
 | O-04 | Do you hold a super.money credit card? | If yes, add it as an account/source |
 | O-05 | Chart libraries (web + mobile) | Pick maintained ones at UI build time |
@@ -1205,6 +1234,7 @@ Chat comes last because it is only as good as the data under it.
 | Term | Meaning |
 |---|---|
 | **Raw message** | The exact SMS or email text as received. Never changed. |
+| **SMS-only mode** | The default: SMS is the only source. With Gmail connected the mode is "SMS + email"; emails then only add evidence. |
 | **Parsed record** | Fields pulled out of one raw message. |
 | **Transaction** | One real money movement. Can be proven by several messages. |
 | **Evidence** | A link between a transaction and a message that reports it. |

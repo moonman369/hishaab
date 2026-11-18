@@ -1,5 +1,7 @@
 # Integration tests. The datasource comes from Testcontainers (@ServiceConnection).
 hishaab:
+  processing:
+    auto-trigger: false     # tests drive processing explicitly (ProcessingAutoTriggerIT turns it on)
   security:
     basic-auth:
       enabled: true

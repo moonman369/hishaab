@@ -32,6 +32,8 @@ management:
       show-details: never
 
 hishaab:
+  processing:
+    auto-trigger: true      # R-015-1: process after each SMS upload and at startup
   security:
     basic-auth:
       enabled: false

@@ -7,7 +7,7 @@ flowchart LR
     end
 
     subgraph Cloud["External services"]
-        Gmail[("Gmail")]
+        Gmail[("Gmail<br/>(optional)")]
         Gemini["Gemini API<br/>(paid tier)"]
         GAuth["Google Sign-In"]
         FCM["Firebase Cloud<br/>Messaging"]
@@ -28,7 +28,7 @@ flowchart LR
     Worker -- "raw bank SMS<br/>(device token)" --> Nginx
     App -- "REST + SSE" --> Nginx
     Browser -- "HTTPS" --> Nginx
-    API -- "read bank emails" --> Gmail
+    API -.->|"read bank emails<br/>(only if connected)"| Gmail
     API -- "categorise / parse fallback / chat" --> Gemini
     API -- "verify login" --> GAuth
     API -- "daily report push" --> FCM

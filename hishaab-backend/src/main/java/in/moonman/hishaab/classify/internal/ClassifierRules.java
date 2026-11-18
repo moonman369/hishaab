@@ -39,8 +39,15 @@ final class ClassifierRules {
         }
     }
 
-    /** Rules from one file; {@code senders} empty = applies to every sender. */
-    record RuleSet(String source, Set<String> senders, Map<MessageClass, List<Rule>> byClass) {
+    /**
+     * Rules from one file; {@code senders} empty = applies to every sender. {@code amount} is the compiled
+     * {@code amount} fragment, if the file defines one (used for "UNKNOWN with an amount", R-015-6).
+     */
+    record RuleSet(String source, Set<String> senders, Map<MessageClass, List<Rule>> byClass, Pattern amount) {
+
+        RuleSet(String source, Set<String> senders, Map<MessageClass, List<Rule>> byClass) {
+            this(source, senders, byClass, null);
+        }
 
         boolean appliesTo(String senderMiddlePart) {
             return senders.isEmpty() || (senderMiddlePart != null && senders.contains(senderMiddlePart));
@@ -106,7 +113,15 @@ final class ClassifierRules {
             }
             byClass.put(messageClass, List.copyOf(compiled));
         });
-        return new RuleSet(source, Set.copyOf(senders), byClass);
+        Pattern amount = null;
+        if (fragments.containsKey("amount")) {
+            try {
+                amount = Pattern.compile(expand(fragments.get("amount"), fragments, source, "fragments.amount", 0));
+            } catch (PatternSyntaxException e) {
+                throw invalid(source, "fragment 'amount' has an invalid regex: " + e.getDescription());
+            }
+        }
+        return new RuleSet(source, Set.copyOf(senders), byClass, amount);
     }
 
     private static Rule compileRule(Object ruleObject, Map<String, String> fragments, String source,

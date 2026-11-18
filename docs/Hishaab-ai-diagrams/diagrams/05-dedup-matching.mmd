@@ -2,9 +2,11 @@ flowchart TD
     S["New parsed record"] --> A{"Has ref_no?"}
     A -- yes --> B{"Existing txn with<br/>same ref_no?"}
     B -- yes --> M1["Attach as evidence<br/>to that txn"]
-    B -- no --> N1["Create new txn"]
+    B -- "no, record is an SMS" --> N1["Create new txn"]
     A -- no --> C["Find candidates from the OTHER source:<br/>same amount, direction, account,<br/>time within window"]
     C --> D{"How many<br/>candidates?"}
-    D -- "0" --> N2["Create new txn"]
+    D -- "0, record is an SMS" --> N2["Create new txn"]
+    D -- "0, record is an email" --> E1["No txn. Review: EMAIL_ONLY<br/>(add / link / ignore)"]
     D -- "1, strong score" --> M2["Attach as evidence"]
-    D -- "1 weak, or 2+" --> R["Create txn as 'pending'<br/>+ Review item: 'Same as this one?'"]
+    D -- "1 weak, or 2+" --> R["SMS: create txn as 'pending'<br/>Email: no txn<br/>+ Review item: 'Same as this one?'"]
+    B -- "no, record is an email" --> E1

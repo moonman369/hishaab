@@ -1,8 +1,10 @@
 flowchart LR
-    P1["1 · Backend core<br/>raw storage, ingest API,<br/>Axis + SBI + SBI Card templates,<br/>golden test set"] --> P2["2 · Sync Worker<br/>Kotlin module, cursor,<br/>device token, backfill"]
-    P2 --> P3["3 · Dedup + Review<br/>Gmail fetch, matching,<br/>review queue, daily report"]
+    P1["1 · Backend core<br/>raw storage, ingest API,<br/>Axis + SBI + fund-house templates,<br/>golden test set"] --> P2["2 · Sync Worker<br/>Kotlin module, cursor,<br/>device token, backfill"]
+    P2 --> P3["3 · Dedup + Review<br/>matching, review queue,<br/>balance check, daily report"]
     P3 --> P4["4 · Web app<br/>dashboard, transactions,<br/>review, settings"]
     P4 --> P5["5 · Android UI<br/>same screens, push,<br/>offline cache"]
+    P4 --> PI["4b · Investments<br/>schedules, instalments,<br/>SIP auto-confirm"]
+    P3 -.-> PM["Optional · Gmail<br/>connect, backfill,<br/>email as evidence"]
     P5 --> P6["6 · AI categorising<br/>rules from your edits,<br/>Gemini for unknowns"]
     P6 --> P7["7 · Chat<br/>tools over SQL"]
     P7 --> P8["Later<br/>UPI app notifications,<br/>budgets, recurring,<br/>statement import, cash"]

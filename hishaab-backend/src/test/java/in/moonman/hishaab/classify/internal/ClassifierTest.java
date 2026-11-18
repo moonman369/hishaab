@@ -91,6 +91,21 @@ class ClassifierTest {
                 .isEqualTo(MessageClass.MANDATE_REMINDER);
     }
 
+    // --- R-015-6 support -----------------------------------------------------------------------------
+
+    @ParameterizedTest
+    @CsvSource(delimiter = '|', value = {
+            "Your FD is booked for INR 20000            | true",
+            "Amount (INR) 1000.00                       | true",
+            "A/C X1234 debited by 28.0 on date 19Aug25  | true",
+            "₹1,23,456.78 received                      | true",
+            "Your KYC has been updated                  | false",
+            "Call 18001035577 for help                  | false",
+    })
+    void R_015_6_mentionsAmount(String body, boolean expected) {
+        assertThat(CLASSIFIER.mentionsAmount(body)).isEqualTo(expected);
+    }
+
     // --- R-012-3 -------------------------------------------------------------------------------------
 
     @ParameterizedTest

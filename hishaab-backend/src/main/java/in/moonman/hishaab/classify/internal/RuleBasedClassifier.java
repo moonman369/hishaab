@@ -50,6 +50,15 @@ class RuleBasedClassifier implements ClassifyService {
         return new Classification(MessageClass.UNKNOWN, NO_MATCH_REASON);
     }
 
+    @Override
+    public boolean mentionsAmount(String body) {
+        String text = normalise(body);
+        return ruleSets.stream()
+                .map(RuleSet::amount)
+                .filter(java.util.Objects::nonNull)
+                .anyMatch(p -> p.matcher(text).find());
+    }
+
     static String normalise(String body) {
         return body == null ? "" : WHITESPACE.matcher(body.toLowerCase(Locale.ROOT)).replaceAll(" ").strip();
     }

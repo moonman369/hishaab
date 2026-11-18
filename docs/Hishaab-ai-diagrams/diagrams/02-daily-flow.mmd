@@ -4,20 +4,22 @@ sequenceDiagram
     participant Phone as SMS inbox
     participant W as Sync Worker
     participant B as Backend
-    participant G as Gmail
+    participant G as Gmail (optional)
     participant U as You (app)
 
     Bank->>Phone: SMS "Rs 450 debited... UPI Ref 4321..."
-    Bank->>G: Email alert for same payment
     Note over W: At your scan time (e.g. 22:00)
     W->>Phone: Read bank SMS newer than cursor
     W->>B: POST /ingest/sms (raw messages)
     B-->>W: Accepted IDs
     W->>W: Move cursor forward
-    B->>B: Parse SMS → candidate transaction
+    B->>B: Parse SMS → transaction (SMS is the source of truth)
     Note over B: Daily job (scan time + 15 min)
-    B->>G: Fetch bank emails since last run
-    B->>B: Parse email → match with SMS (same UPI Ref) → one transaction
-    B->>B: Categorise, build daily report
-    B->>U: Push: "12 new · 2 need review"
+    opt Gmail connected
+        Bank->>G: Email alert for same payment
+        B->>G: Fetch bank emails since last run
+        B->>B: Parse email → attach to the SMS transaction as extra proof (never a new one)
+    end
+    B->>B: Balance check, categorise, build daily report
+    B->>U: Push: "12 new · 2 need review · SMS only"
     U->>B: Resolve review items

@@ -9,11 +9,14 @@ sequenceDiagram
 
     S->>S: Cron fires (your scan time + 15 min)
     S->>S: Take advisory lock
-    S->>M: Fetch bank emails since last run
-    M->>P: New raw emails
-    P->>P: Process any unprocessed SMS + emails
+    opt Gmail connected and valid
+        S->>M: Fetch bank emails since last run
+        M->>P: New raw emails
+    end
+    P->>P: Process any unprocessed messages
     P->>Q: Open review items
-    P->>P: Balance check per account
+    P->>P: Balance check per account (every scan, mandatory)
+    P->>Q: Flag accounts with no balance SMS for a long time
     S->>R: Build report for this run
-    R->>N: "12 new · ₹3,420 spent · 2 need review"
+    R->>N: "12 new · ₹3,420 spent · 2 need review · SMS only"
     S->>S: Save scan_run, release lock

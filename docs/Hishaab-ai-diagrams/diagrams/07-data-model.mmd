@@ -14,6 +14,11 @@ erDiagram
     SCAN_RUN ||--o{ REVIEW_ITEM : "reports"
     DEVICE ||--o{ RAW_MESSAGE : "uploaded"
     CHAT_SESSION ||--o{ CHAT_MESSAGE : "contains"
+    ACCOUNT ||--o{ INVESTMENT : "debited from"
+    INVESTMENT ||--o{ INSTALMENT : "expects"
+    INSTALMENT ||--o{ INSTALMENT_EVIDENCE : "proven by"
+    TRANSACTION ||--o| INSTALMENT_EVIDENCE : "bank debit"
+    RAW_MESSAGE ||--o{ INSTALMENT_EVIDENCE : "allotment / failed msg"
 
     RAW_MESSAGE {
         string id PK "sha256 or Gmail msg id"
@@ -73,7 +78,7 @@ erDiagram
     }
     ACCOUNT {
         uuid id PK
-        string bank "AXIS SBI SBI_CARD"
+        string bank "AXIS SBI"
         string type "SAVINGS CREDIT_CARD"
         string last4
         string nickname
@@ -125,6 +130,7 @@ erDiagram
         timestamptz finished_at
         int sms_in
         int emails_in
+        string source_mode "SMS_ONLY SMS_AND_EMAIL"
         int txns_created
         int txns_merged
         int review_opened
@@ -148,4 +154,43 @@ erDiagram
         string role
         text content
         jsonb tool_calls
+    }
+    INVESTMENT {
+        uuid id PK
+        string name
+        string type "SIP RD FD PPF OTHER"
+        bigint amount_paise
+        uuid account_id FK
+        string frequency "MONTHLY QUARTERLY YEARLY EVERY_N_DAYS EVERY_N_MONTHS ONE_TIME"
+        int interval_n
+        int schedule_day "1-31; 29-31 clamp to month end"
+        date start_date
+        date end_date
+        date maturity_date
+        string match_text "folio / scheme / mandate words"
+        int grace_days
+        bool active
+    }
+    INSTALMENT {
+        uuid id PK
+        uuid investment_id FK
+        date due_date
+        bigint expected_paise
+        string status "SCHEDULED CONFIRMED MARKED_PAID MISSED SKIPPED FAILED"
+        string status_source "AUTO USER"
+    }
+    MAIL_CONNECTION {
+        string provider "GMAIL_API or IMAP"
+        string status "DISCONNECTED CONNECTED ERROR REAUTH_REQUIRED"
+        string account_masked
+        bytes token_encrypted "null when disconnected"
+        timestamptz connected_at
+        timestamptz last_fetch_at
+        string last_error
+    }
+    INSTALMENT_EVIDENCE {
+        uuid instalment_id FK
+        uuid transaction_id FK "bank debit, if any"
+        string raw_message_id FK "allotment / failed msg, if any"
+        string kind "BANK_DEBIT AMC_CONFIRMATION FAILED_DEBIT"
     }

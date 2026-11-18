@@ -8,7 +8,7 @@ flowchart TB
 
     subgraph Core["Core modules"]
         Ingest["ingest<br/>store raw SMS / email"]
-        Mail["mail<br/>Gmail fetcher"]
+        Mail["mail (optional)<br/>Gmail connection + fetcher"]
         Classify["classify<br/>is it a real txn?"]
         Parse["parse<br/>templates + LLM fallback"]
         Match["match<br/>dedup + linking"]
@@ -27,7 +27,7 @@ flowchart TB
     end
 
     IngestAPI --> Ingest
-    Sched --> Mail --> Ingest
+    Sched -.->|"only if Gmail connected"| Mail --> Ingest
     Ingest --> Classify --> Parse --> Match --> Categ
     Match --> Review
     Categ --> Review
