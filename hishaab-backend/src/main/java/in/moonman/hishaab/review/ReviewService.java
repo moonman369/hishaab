@@ -6,7 +6,7 @@ import java.util.UUID;
 
 /**
  * Public API of the review module. SPEC-015 needs only "open a question" and "clear the open questions for a
- * message"; SPEC-033 adds listing, resolving and dismissing.
+ * message"; SPEC-031 adds auto-close on match; SPEC-033 adds listing, resolving and dismissing.
  */
 public interface ReviewService {
 
@@ -17,6 +17,9 @@ public interface ReviewService {
      */
     boolean open(OpenReview request);
 
+    /** Auto-closes an open review item by its dedup key (R-031-5, R-031-10). */
+    boolean autoClose(String dedupKey);
+
     /** Deletes still-{@code OPEN} items about this raw message (derived data, R-015-7). Answered items are kept. */
     int deleteOpenForRawMessage(String rawMessageId);
 
@@ -25,7 +28,7 @@ public interface ReviewService {
 
     enum ReviewType {
         AMBIGUOUS_MATCH, UNPARSED, LOW_CONFIDENCE, UNKNOWN_CATEGORY, UNKNOWN_KIND, BALANCE_GAP, ORPHAN_OVERRIDE,
-        INSTALMENT_AMBIGUOUS, SIP_SCHEDULE_SUGGESTION
+        INSTALMENT_AMBIGUOUS, SIP_SCHEDULE_SUGGESTION, EMAIL_ONLY, BALANCE_STALE
     }
 
     enum ReviewStatus { OPEN, RESOLVED, DISMISSED, AUTO_CLOSED }

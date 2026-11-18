@@ -160,8 +160,8 @@ Status: `TODO` · `IN PROGRESS` · `DONE` · `BLOCKED (reason)`
 | | SPEC-014 | Normalisation | 013 | DONE |
 | | SPEC-015 | Processing orchestrator | 012–014 | DONE |
 | 2 Email (optional) | SPEC-020 | Optional Gmail connection & mail fetcher | 015, 031, 033 | TODO — optional; only the real Gmail client waits on O-02 / Q-2. **Nothing depends on it** |
-| 3 Match & review | SPEC-030 | Accounts & merchants | 015 | TODO |
-| | SPEC-031 | Matcher & transactions | 030 | TODO |
+| 3 Match & review | SPEC-030 | Accounts & merchants | 015 | DONE |
+| | SPEC-031 | Matcher & transactions | 030 | DONE |
 | | SPEC-032 | Special kinds | 031 | TODO |
 | | SPEC-033 | Review queue | 031 | TODO |
 | | SPEC-034 | Overrides & rebuild | 031, 033 | TODO |
@@ -711,8 +711,8 @@ public interface MailConnectionService {
 - AC-030-6 Adding alias `7311` to another account when an account already owns `7311` → 400 `ALIAS_CONFLICT`.
 
 **Tasks**
-- [ ] Migration
-- [ ] Resolver services + tests
+- [x] Migration
+- [x] Resolver services + tests
 
 ---
 
@@ -758,9 +758,9 @@ CREATE UNIQUE INDEX ux_evidence_record ON transaction_evidence(parsed_record_id)
 - AC-031-10 SMS-only mode (no email records at all): every SMS scenario above gives the same result as with Gmail connected.
 
 **Tasks**
-- [ ] Migration
-- [ ] Matcher service (pure decision function + persistence wrapper)
-- [ ] Scenario tests AC-031-1..7
+- [x] Migration
+- [x] Matcher service (pure decision function + persistence wrapper)
+- [x] Scenario tests AC-031-1..7
 
 ---
 
@@ -1556,7 +1556,12 @@ record LlmResult<T>(T value, double confidence, String model, long latencyMs, lo
 | 2026-11-18 | 035 | Balance check is mandatory on every scan in both modes; savings accounts only; new `BALANCE_STALE` review after `balance.staleDays` (14) without a balance-bearing SMS | No second source in SMS-only mode; card "available limit" is not a balance | Claude |
 | 2026-11-18 | 036 | SPEC-036 no longer depends on SPEC-020; `scan_run` records `source_mode`, `mail_status` and per-step results; report and push name the mode; `/summary` returns `sourceMode` + `mail` | Mode must be visible on the dashboard and in every report | Claude |
 | 2026-11-18 | 050 | Login never requests Gmail scopes; Gmail is a separate optional consent | Keeps email truly opt-in | Claude |
-| | | | | |
+| 2026-11-18 | 030 | Account auto-creation formats nickname as 'Axis ••<last4>' for savings and 'Axis card ••<last4>' for cards (SBI as 'SBI ••<last4>') | Matches AC-030-4/5 examples and R-030-1 | Claude |
+| 2026-11-18 | 030 | Account merge deletes 'from' before creating the alias on 'into' (repointing existing aliases first) | Avoids triggering account_number_unique ALIAS_CONFLICT during merge | Claude |
+| 2026-11-18 | 030 | Alias conflict on insert/update translates trigger/unique constraint error to 400 ProblemDetail with code ALIAS_CONFLICT | Required by AC-030-6 | Claude |
+| 2026-11-18 | 031 | `V8__transactions.sql`: added `transaction`, `transaction_evidence`, `ux_txn_ref_dir`, `ux_evidence_record`, FK on `review_item.transaction_id`, and updated `review_item.type` check constraint to include `EMAIL_ONLY` and `BALANCE_STALE` | Required for transaction persistence, deduplication, and email review flows | Claude |
+| 2026-11-18 | 031 | `ReviewService.autoClose(dedupKey)` added so matching SMS can auto-close prior `EMAIL_ONLY` review items | Fulfills R-031-10 when late SMS resolves open email review items | Claude |
+| 2026-11-18 | 031 | `RecordParsedListener` listens to `RecordParsed` events asynchronously post-commit to invoke `MatcherService.matchRecord` | Ensures automatic pipeline orchestration from parsed records to transactions | Claude |
 
 ---
 

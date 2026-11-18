@@ -39,6 +39,20 @@ class JdbcReviewService implements ReviewService {
 
     @Override
     @Transactional
+    public boolean autoClose(String dedupKey) {
+        int rows = jdbc.update("""
+                UPDATE review_item
+                SET status = 'AUTO_CLOSED', resolved_at = now()
+                WHERE dedup_key = ? AND status = 'OPEN'
+                """, dedupKey);
+        if (rows > 0) {
+            log.info("event=review_auto_closed dedupKey={}", dedupKey);
+        }
+        return rows > 0;
+    }
+
+    @Override
+    @Transactional
     public int deleteOpenForRawMessage(String rawMessageId) {
         return jdbc.update("DELETE FROM review_item WHERE status = 'OPEN' AND raw_message_id = ?", rawMessageId);
     }
