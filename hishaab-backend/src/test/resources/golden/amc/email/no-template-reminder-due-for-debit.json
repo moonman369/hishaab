@@ -1,0 +1,13 @@
+{
+  "input": {
+    "source": "EMAIL",
+    "sender": "zetamf@camsonline.com",
+    "body": "Your SIP instalment is due!\n\nDear Investor,\n\nGreetings from Zeta Mutual Fund.\n\nYour SIP is due for debit. We request you to maintain sufficient funds in your linked bank account.\n\nThe details are as below:\n\nFolio no.\t3300112233\nScheme Name\tZeta Multi-Cap Fund Regular Growth\nSIP Debit Date\t05-NOV-2026\nSIP Amount\tRs. 1000\nBank Name\tSTATE BANK OF INDIA",
+    "receivedAtMs": 1793418960000
+  },
+  "expected": {
+    "class": "MANDATE_REMINDER",
+    "fields": null,
+    "templateId": null
+  }
+}

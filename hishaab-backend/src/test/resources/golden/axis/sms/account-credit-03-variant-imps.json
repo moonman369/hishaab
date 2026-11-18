@@ -1,0 +1,22 @@
+{
+  "input": {
+    "source": "SMS",
+    "sender": "AX-AXISBK-S",
+    "body": "INR 250.00 credited to Axis Bank A/c XX7311 on 15-11-26 at 08:00:01 IST. Ref: IMPS-REFUND77.View bal: https://example.invalid/b/Qq1",
+    "receivedAtMs": 1794709820000
+  },
+  "expected": {
+    "class": "TRANSACTION",
+    "fields": {
+      "amountPaise": 25000,
+      "direction": "CR",
+      "accountLast4": "7311",
+      "channel": "IMPS",
+      "counterpartyRaw": "IMPS-REFUND77",
+      "refNo": null,
+      "txnTime": "2026-11-15T08:00:01+05:30",
+      "balanceAfterPaise": null
+    },
+    "templateId": "axis.sms.account_credit"
+  }
+}

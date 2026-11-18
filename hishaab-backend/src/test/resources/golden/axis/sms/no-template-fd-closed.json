@@ -1,0 +1,13 @@
+{
+  "input": {
+    "source": "SMS",
+    "sender": "AX-AXISBK-S",
+    "body": "Your FD no. XX5521 has been closed & funds will be credited to the repayment A/c. For details, pls contact your nearest Axis Bank branch. - Axis Bank",
+    "receivedAtMs": 1793766900000
+  },
+  "expected": {
+    "class": "UNKNOWN",
+    "fields": null,
+    "templateId": null
+  }
+}

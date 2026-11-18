@@ -1,0 +1,37 @@
+# SPEC-013 parse templates: SBI savings, SMS and email. See axis.yml for conventions.
+templates:
+
+  # "Dear UPI user A/C X1234 debited by 28.0 on date 19Aug25 trf to <payee> Refno <ref>. If not u? call ... -SBI"
+  - id: sbi.sms.upi_debit
+    version: 1
+    bank: SBI
+    source: SMS
+    accountType: SAVINGS
+    recordType: TRANSACTION
+    senderPattern: 'SBI[A-Z]{0,5}|[A-Z]{0,4}SBI'
+    regex: 'A/C\s+X+(?<last4>\d{4})\s+debited\s+by\s+(?:Rs\.?\s*|INR\s*)?(?<amount>[\d,]+(?:\.\d{1,2})?)\s+on\s+date\s+(?<date>\d{1,2}[A-Za-z]{3}\d{2,4})\s+trf\s+to\s+(?<cp>.+?)\s+Ref\s*no\.?\s*(?<ref>\d{6,22})'
+    fixed: { direction: DR, channel: UPI }
+
+  # "Dear SBI User, your A/c X1234-credited by Rs.2.00 on 19Jun26 transfer from <payer> Ref No <ref> -SBI"
+  # Channel is not stated in the text, so it is inferred (usually OTHER) rather than guessed.
+  - id: sbi.sms.credit
+    version: 1
+    bank: SBI
+    source: SMS
+    accountType: SAVINGS
+    recordType: TRANSACTION
+    senderPattern: 'SBI[A-Z]{0,5}|[A-Z]{0,4}SBI'
+    regex: 'A/c\s+X+(?<last4>\d{4})\s*-?\s*credited\s+by\s+(?:Rs\.?\s*|INR\s*)?(?<amount>[\d,]+(?:\.\d{1,2})?)\s+on\s+(?<date>\d{1,2}[A-Za-z]{3}\d{2,4})\s+transfer\s+from\s+(?<cp>.+?)\s+Ref\s+No\.?\s*(?<ref>\d{6,22})'
+    fixed: { direction: CR }
+
+  # Debit-card alert email, a label/value table. Only "CASH WITHDRAWAL" has been seen; other transaction types
+  # deliberately do not match (they go to UNPARSED review instead of being guessed).
+  - id: sbi.email.debit_card_cash_withdrawal
+    version: 1
+    bank: SBI
+    source: EMAIL
+    accountType: SAVINGS
+    recordType: TRANSACTION
+    senderPattern: '.*@alerts\.sbi\.co\.in|.*@sbi\.co\.in|.*@alerts\.sbi\.bank\.in'
+    regex: '(?s)debit\s+card.*?Date\s*&\s*Time\s+(?<datetime>[A-Za-z]{3}\s+\d{1,2},\s*\d{4},?\s+\d{1,2}:\d{2})\s.*?Amount\s*\(INR\)\s+(?<amount>[\d,]+(?:\.\d{1,2})?)\s+Last\s+4\s+Digit\s+of\s+Account\s+X*(?<last4>\d{4})\s+Transaction\s+Type\s+CASH\s+WITHDRAWAL\s+Channel\s+(?<channel>[A-Za-z-]+)(?:\s+Available\s+Balance\s*\(INR\)\s+(?<bal>[\d,]+(?:\.\d{1,2})?))?(?:\s+Location\s+(?<cp>[^\r\n\t]+))?'
+    fixed: { direction: DR }

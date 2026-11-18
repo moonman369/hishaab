@@ -1,0 +1,22 @@
+{
+  "input": {
+    "source": "EMAIL",
+    "sender": "alerts@axis.bank.in",
+    "body": "Auto Pay of INR 1,299.00 for CLOUD STORAGE PLAN processed\n\n20-10-2026\n\nDear Customer,\n\nAuto Pay for e-mandate of INR 1,299.00 for CLOUD\nSTORAGE PLAN has been processed on your Axis Bank Card no. XX8820 on 20-10-2026 at 09:00:00 IST. The transaction ID is 263000555444333.\n\nTo manage your Auto Pay mandate with ID AbCdEf12345, please visit the SI Hub https://example.invalid/si . Terms and Conditions apply.\n\nIf this transaction was not initiated by you, please call us on 18000000000 (Toll Free) or write to us at support@example.invalid , or block your card by sending SMS BLOCKCARD 8820 to 9000000000.\n\nAlways open to help you.\n\nRegards,\nAxis Bank Ltd.",
+    "receivedAtMs": 1792467030000
+  },
+  "expected": {
+    "class": "TRANSACTION",
+    "fields": {
+      "amountPaise": 129900,
+      "direction": "DR",
+      "accountLast4": "8820",
+      "channel": "AUTOPAY",
+      "counterpartyRaw": "CLOUD STORAGE PLAN",
+      "refNo": "263000555444333",
+      "txnTime": "2026-10-20T09:00:00+05:30",
+      "balanceAfterPaise": null
+    },
+    "templateId": "axis.email.card_autopay"
+  }
+}

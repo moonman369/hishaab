@@ -1,0 +1,22 @@
+{
+  "input": {
+    "source": "SMS",
+    "sender": "AX-ZETAMF-S",
+    "body": "Purchase SIP in Folio 3300445566 in Zeta Gold Fund Growth for Rs. 499.98 , NAV 30.01/Trade date 15-Nov-2026 is processed & 16.66 units allotted. - ZETAMF.",
+    "receivedAtMs": 1794810600000
+  },
+  "expected": {
+    "class": "INVESTMENT_CONFIRMATION",
+    "fields": {
+      "amountPaise": 49998,
+      "direction": "DR",
+      "accountLast4": null,
+      "channel": "OTHER",
+      "counterpartyRaw": "Zeta Gold Fund Growth",
+      "refNo": "3300445566",
+      "txnTime": "2026-11-15T12:00:00+05:30",
+      "balanceAfterPaise": null
+    },
+    "templateId": "amc.sms.purchase_sip_in_folio"
+  }
+}

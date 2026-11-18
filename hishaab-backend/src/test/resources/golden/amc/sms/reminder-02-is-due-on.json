@@ -1,0 +1,13 @@
+{
+  "input": {
+    "source": "SMS",
+    "sender": "JM-BETAMF-S",
+    "body": "Alert: SIP instalment of Rs.1000 in Beta Small Cap Fund-Reg-Growth in Folio 7000123 is due on 05-11-2026. Please ensure sufficient balance in your bank a/c -BetaMF",
+    "receivedAtMs": 1793507400000
+  },
+  "expected": {
+    "class": "MANDATE_REMINDER",
+    "fields": null,
+    "templateId": null
+  }
+}

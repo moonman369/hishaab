@@ -55,6 +55,42 @@ class ClassifierTest {
         assertThat(c.reason()).isEqualTo("TRANSACTION:amount-and-completed-action");
     }
 
+    // --- AC-012-7 / AC-012-8 (fund houses) -----------------------------------------------------------
+
+    @ParameterizedTest
+    @CsvSource(delimiter = '|', value = {
+            "Your SIP Purchase of Rs.999.95 in Folio 55500011 in Gamma Fund Growth for 29.1 units has been processed for NAV of Rs.34.33 on 05-Oct-2026",
+            "Folio XXXXXXX1122 - Your SIP instalment of Rs. 999.95 towards Alpha Fund is processed. Units Allotted: 21.5.",
+            "Your Purchase of Rs.999.95 for folio 7000123/38 in Beta Fund-Reg-Growth is processed at NAV 50.357",
+    })
+    void AC_012_07_fundHouseAllotmentIsInvestmentConfirmation(String body) {
+        assertThat(classOf(body)).isEqualTo(MessageClass.INVESTMENT_CONFIRMATION);
+    }
+
+    @ParameterizedTest
+    @CsvSource(delimiter = '|', value = {
+            "Folio XXXXXXX1122 - Your SIP instalment of Rs. 1000.00 towards Alpha Fund will be debited on 05/10/2026.",
+            "Dear Investor, SIP of Rs.1000 dated 05-10-2026 under Folio 55500011 in Gamma Fund is due for debit from your bank account",
+            "Alert: SIP instalment of Rs.1000 in Beta Fund in Folio 7000123 is due on 05-11-2026.",
+            "Your Systematic Investment Plan (SIP) submitted under folio no.12121212 has been registered with the following details",
+            "Your UPI-Mandate for Rs.699.00 is successfully created towards StreamCo from A/c No: XXXXXX4092.",
+    })
+    void AC_012_08_fundHouseRemindersAndRegistrationsAreMandateReminders(String body) {
+        assertThat(classOf(body)).isEqualTo(MessageClass.MANDATE_REMINDER);
+    }
+
+    @Test
+    void safety_couldNotBeProcessedIsStillFailed() {
+        assertThat(classOf("Your payment of Rs 500 could not be processed. Please retry."))
+                .isEqualTo(MessageClass.FAILED_TXN);
+    }
+
+    @Test
+    void safety_alreadyBeingDebitedIsNotACompletedDebit() {
+        assertThat(classOf("Your SIP of Rs.1000 is due on 05-NOV-2026. Ignore if your account is already being debited."))
+                .isEqualTo(MessageClass.MANDATE_REMINDER);
+    }
+
     // --- R-012-3 -------------------------------------------------------------------------------------
 
     @ParameterizedTest
@@ -153,7 +189,7 @@ class ClassifierTest {
     void R_012_4_statusMapping(MessageClass messageClass) {
         Classification c = new Classification(messageClass, "test");
         switch (messageClass) {
-            case TRANSACTION, UNKNOWN -> {
+            case TRANSACTION, INVESTMENT_CONFIRMATION, UNKNOWN -> {
                 assertThat(c.rawStatus()).isEqualTo(RawStatus.CLASSIFIED);
                 assertThat(c.ignoreReason()).isNull();
             }

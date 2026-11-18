@@ -3,29 +3,32 @@
 # How rules are evaluated (see RuleBasedClassifier):
 #   * The message body is lowercased and runs of whitespace collapse to one space before matching.
 #   * Classes are checked in the fixed order of R-012-2:
-#       OTP > PROMO > FAILED_TXN > MANDATE_REMINDER > BALANCE_ONLY > STATEMENT > TRANSACTION > UNKNOWN
+#       OTP > INVESTMENT_CONFIRMATION > PROMO > FAILED_TXN > MANDATE_REMINDER > BALANCE_ONLY > STATEMENT
+#       > TRANSACTION > UNKNOWN
 #     The first class with a matching rule wins. Order inside this file does not matter.
 #   * A rule matches when every regex in `all` is found AND no regex in `none` is found.
 #   * `{{name}}` inside a regex is replaced by the fragment `name` below.
 #   * Bank-specific files (classify/<bank>.yml with a `senders:` list of sender middle parts) are checked
-#     before these common rules, within the same class. None exist yet: they arrive with the golden set (SPEC-013).
+#     before these common rules, within the same class. None are needed yet.
 #
 # SAFETY PRINCIPLE: wrongly *ignoring* a message silently drops a real transaction from the totals, while
 # wrongly classing something as TRANSACTION is caught later (no template match -> UNPARSED review item,
 # SPEC-015). So every "ignore" class is specific, and refuses messages that also report a completed money
 # movement (`none: ['{{done}}']`). When in doubt, a message falls through to TRANSACTION or UNKNOWN.
 #
-# These patterns are a first cut written WITHOUT real samples. AC-012-6 (golden set) must confirm them.
+# Patterns were checked against the shapes of real Axis, SBI and fund-house messages (golden set, SPEC-013).
 
 senders: []
 
 fragments:
-  # Currency-prefixed amount: "rs.1,234.50", "rs 500", "inr 1,234.5", "₹1,23,456.00"
-  amount: '(?:rs\.?|inr|₹)\s?\d[\d,]*(?:\.\d{1,2})?'
-  # Rejects future/conditional phrasing directly before an action word ("will be debited", "to be credited")
-  not_future: '(?<!will be )(?<!to be )(?<!shall be )(?<!would be )(?<!may be )(?<!will get )(?<!can be )'
+  # An amount: "rs.1,234.50", "rs 500", "inr 1,234.5", "₹1,23,456.00", "amount (inr) 1000.00",
+  # and SBI's currency-less "debited by 28.0" / "credited by 2.00".
+  amount: '(?:rs\.?|inr|₹)\s?\d[\d,]*(?:\.\d{1,2})?|\(inr\)\s*\d[\d,]*(?:\.\d{1,2})?|(?<=debited by |credited by )\d[\d,]*(?:\.\d{1,2})?'
+  # Rejects future/conditional phrasing directly before an action word ("will be debited", "being debited")
+  # ... and negations ("could not be processed", "not credited").
+  not_future: '(?<!will be )(?<!to be )(?<!shall be )(?<!would be )(?<!may be )(?<!will get )(?<!can be )(?<!being )(?<!not be )(?<!not )'
   # A completed money movement (R-012-3)
-  done: '{{not_future}}\b(?:debited|credited|spent|withdrawn|sent|received|paid|deposited|transferred|deducted|refunded|reversed)\b'
+  done: '{{not_future}}\b(?:debited|credited|spent|withdrawn|withdrawal|sent|received|paid|deposited|transferred|deducted|refunded|reversed|processed)\b|\btransaction has been done\b'
 
 classes:
   OTP:
@@ -37,12 +40,24 @@ classes:
       none:
         - '{{done}}'
 
+  INVESTMENT_CONFIRMATION:
+    # R-012-6: fund-house SIP allotment. Mentions a folio, says it was processed/allotted, mentions units or NAV.
+    # Reminders ("will be debited", "is due") never say processed/allotted. Checked before TRANSACTION so an
+    # allotment is never counted as a second money movement next to the bank debit (HLD D-24).
+    - name: folio-processed-units-or-nav
+      all:
+        - '\bfolio\b'
+        - '{{not_future}}\b(?:processed|allotted|alotted)\b'
+        - '\b(?:units?|nav)\b'
+
   PROMO:
     - name: marketing-words
       all:
         - '\b(?:offers?|pre-?approved|apply now|click here|limited period|hurry|exclusive|congratulations|eligible for|upgrade now|lowest emi|win)\b|\d+\s?% off|t&c apply'
       none:
         - '{{done}}'
+        # Statement emails carry promo banners; they belong to STATEMENT.
+        - '\bstatement\b'
 
   FAILED_TXN:
     # A message that also says money was debited/credited is NOT treated as failed: it falls through to
@@ -56,11 +71,17 @@ classes:
   MANDATE_REMINDER:
     - name: future-debit
       all:
-        - '\b(?:will be|to be|shall be|is scheduled to be|would be) (?:auto-?)?(?:debited|deducted|charged|paid)\b|\bscheduled (?:for|on)\b|\bdue (?:on|by)\b|\bupcoming (?:debit|payment|mandate)\b|\bpre-?debit notification\b'
+        - '\b(?:will be|to be|shall be|is scheduled to be|would be) (?:auto-?)?(?:debited|deducted|charged|paid)\b|\bscheduled (?:for|on)\b|\bdue (?:on|by|for debit)\b|\bupcoming (?:debit|payment|mandate|sip)\b|\bpre-?debit notification\b'
       none:
         - '{{done}}'
         # Card statements say "due on" too; they belong to STATEMENT.
         - '\bstatement\b|\b(?:total|min(?:imum)?)\.? ?(?:amt\.?|amount)? ?due\b'
+    # Mandate / SIP set-up notices: no money moved yet.
+    - name: mandate-or-sip-registered
+      all:
+        - '\b(?:mandate|sip|systematic investment plan)\b.{0,120}?\b(?:created|registered)\b'
+      none:
+        - '{{done}}'
 
   BALANCE_ONLY:
     - name: balance-without-movement

@@ -1,0 +1,22 @@
+{
+  "input": {
+    "source": "SMS",
+    "sender": "AD-DELTMF-S",
+    "body": "Your SIP Purchase in Folio 41000022/07 under Delta Small Cap Fund-Growth for Rs. 4,999.75 has been processed at the NAV of 98.1 for 50.96 units and 05-OCT-2026. Sincerely, DELTAMF",
+    "receivedAtMs": 1791253800000
+  },
+  "expected": {
+    "class": "INVESTMENT_CONFIRMATION",
+    "fields": {
+      "amountPaise": 499975,
+      "direction": "DR",
+      "accountLast4": null,
+      "channel": "OTHER",
+      "counterpartyRaw": "Delta Small Cap Fund-Growth",
+      "refNo": "41000022",
+      "txnTime": "2026-10-05T08:00:00+05:30",
+      "balanceAfterPaise": null
+    },
+    "templateId": "amc.sms.sip_purchase_in_folio_under"
+  }
+}

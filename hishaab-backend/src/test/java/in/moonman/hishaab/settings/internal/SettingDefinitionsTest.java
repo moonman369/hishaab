@@ -50,8 +50,14 @@ class SettingDefinitionsTest {
                 .isEqualTo(JSON.readTree("[\"AXISBK\",\"SBIINB\",\"SBMSMS\"]"));
     }
 
+    @Test
+    void R_001_3_wildcardAllowsAllSenders() {
+        assertThat(normalise("senders.allowlist", "[\"*\"]")).isEqualTo(JSON.readTree("[\"*\"]"));
+        assertThat(normalise("senders.allowlist", "[\" * \",\"axisbk\"]")).isEqualTo(JSON.readTree("[\"*\",\"AXISBK\"]"));
+    }
+
     @ParameterizedTest
-    @ValueSource(strings = {"[\"AX\"]", "[\"TOOLONGID\"]", "[\"AX-AXISBK-S\"]", "[\"AXIS1\"]", "[1]", "\"AXISBK\"",
+    @ValueSource(strings = {"[\"**\"]", "[\"AX*\"]", "[\"AX\"]", "[\"TOOLONGID\"]", "[\"AX-AXISBK-S\"]", "[\"AXIS1\"]", "[1]", "\"AXISBK\"",
             "[null]"})
     void R_001_3_badAllowlistEntriesRejected(String value) {
         assertRejected("senders.allowlist", value, "INVALID_SETTING_VALUE");

@@ -148,6 +148,19 @@ class IngestSmsIT extends IntegrationTest {
     }
 
     @Test
+    void AC_011_07_wildcardAllowlistAcceptsAnySender() {
+        jdbc.update("UPDATE settings SET value = '[\"*\"]'::jsonb WHERE key = 'senders.allowlist'");
+        ObjectNode fundHouse = sms("VK-ALPHMF-S", "Your SIP Purchase of Rs.999.95 is processed", T0);
+        ObjectNode bank = sms("AX-AXISBK-S", "bank", T0 + 1);
+
+        JsonNode body = json(upload(List.of(fundHouse, bank)));
+
+        assertThat(ids(body.path("accepted"))).containsExactly(fundHouse.path("id").asString(),
+                bank.path("id").asString());
+        assertThat(body.path("rejected").size()).isZero();
+    }
+
+    @Test
     void AC_011_05_olderBatchDoesNotMoveCursorBack() {
         upload(List.of(sms("AX-AXISBK-S", "new", T0 + 10_000)));
 

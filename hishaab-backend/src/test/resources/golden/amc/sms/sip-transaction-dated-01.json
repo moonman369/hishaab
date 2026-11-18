@@ -1,0 +1,22 @@
+{
+  "input": {
+    "source": "SMS",
+    "sender": "VM-EPSIMF-S",
+    "body": "Dear Investor,Your SIP transaction dated 05/08/2026 in EPS Large & Midcap Fund - Reg Gr for Rs. 1000.00 under folio number 900000111222 is processed and units 27.663 are alotted @ NAV of Rs. 36.1479. Please call 8000000000  for any assistance.Epsilon MF",
+    "receivedAtMs": 1786005000000
+  },
+  "expected": {
+    "class": "INVESTMENT_CONFIRMATION",
+    "fields": {
+      "amountPaise": 100000,
+      "direction": "DR",
+      "accountLast4": null,
+      "channel": "OTHER",
+      "counterpartyRaw": "EPS Large & Midcap Fund - Reg Gr",
+      "refNo": "900000111222",
+      "txnTime": "2026-08-05T14:00:00+05:30",
+      "balanceAfterPaise": null
+    },
+    "templateId": "amc.sms.sip_transaction_dated"
+  }
+}

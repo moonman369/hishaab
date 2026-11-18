@@ -1,0 +1,22 @@
+{
+  "input": {
+    "source": "SMS",
+    "sender": "AX-AXISBK-S",
+    "body": "INR 5,000.00 credited to Axis Bank A/c XX7311 on 01-11-26 at 10:12:00 IST. Ref: NEFT-HDFC0000123-PAYOUT.View bal: https://example.invalid/b/XyZ789",
+    "receivedAtMs": 1793508150000
+  },
+  "expected": {
+    "class": "TRANSACTION",
+    "fields": {
+      "amountPaise": 500000,
+      "direction": "CR",
+      "accountLast4": "7311",
+      "channel": "NEFT",
+      "counterpartyRaw": "NEFT-HDFC0000123-PAYOUT",
+      "refNo": null,
+      "txnTime": "2026-11-01T10:12:00+05:30",
+      "balanceAfterPaise": null
+    },
+    "templateId": "axis.sms.account_credit"
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "input": {
+    "source": "SMS",
+    "sender": "VK-ALPHMF-S",
+    "body": "Folio XXXXXXX1122 - Your SIP instalment of Rs. 1000.00 towards Alpha India Small Cap Fund - Regular Plan Growth - Growth will be debited on 05/10/2026. Please maintain adequate balance in the account. Regards, Alpha MF.",
+    "receivedAtMs": 1790829000000
+  },
+  "expected": {
+    "class": "MANDATE_REMINDER",
+    "fields": null,
+    "templateId": null
+  }
+}

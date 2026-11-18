@@ -8,6 +8,7 @@ import static in.moonman.hishaab.settings.SettingsService.SCAN_SERVER_DELAY_MINU
 import static in.moonman.hishaab.settings.SettingsService.SCAN_ZONE;
 import static in.moonman.hishaab.settings.SettingsService.SENDERS_ALLOWLIST;
 
+import in.moonman.hishaab.settings.SettingsService;
 import in.moonman.hishaab.shared.ApiException;
 import java.math.BigDecimal;
 import java.time.DateTimeException;
@@ -99,7 +100,10 @@ final class SettingDefinitions {
         }
     }
 
-    /** R-001-3: each entry is the stable middle part of a sender ID, uppercased, 3–8 letters. Duplicates collapse. */
+    /**
+     * R-001-3: each entry is the stable middle part of a sender ID, uppercased, 3–8 letters, or the wildcard
+     * {@value SettingsService#ALLOW_ALL_SENDERS} (accept every sender). Duplicates collapse.
+     */
     private static JsonNode allowlist(JsonNode value) {
         if (!value.isArray()) {
             throw invalid(SENDERS_ALLOWLIST, "must be an array of sender ID parts such as [\"AXISBK\"]");
@@ -107,9 +111,9 @@ final class SettingDefinitions {
         Set<String> parts = new LinkedHashSet<>();
         for (JsonNode entry : value) {
             String part = entry.isString() ? entry.stringValue().strip().toUpperCase(Locale.ROOT) : "";
-            if (!SENDER_PART.matcher(part).matches()) {
+            if (!part.equals(SettingsService.ALLOW_ALL_SENDERS) && !SENDER_PART.matcher(part).matches()) {
                 throw invalid(SENDERS_ALLOWLIST,
-                        "entries must be 3-8 letters (the middle part of a sender ID like AX-AXISBK-S)");
+                        "entries must be 3-8 letters (the middle part of a sender ID like AX-AXISBK-S) or \"*\"");
             }
             parts.add(part);
         }

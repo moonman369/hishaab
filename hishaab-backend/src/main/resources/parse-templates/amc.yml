@@ -1,0 +1,65 @@
+# SPEC-013 parse templates: mutual-fund house (AMC) SIP allotment SMS. recordType INVESTMENT_CONFIRMATION:
+# these confirm an instalment (SPEC-046) and NEVER become transactions (R-031-8, HLD D-24).
+# Fields: amount = allotted amount (net of stamp duty, e.g. 999.95 for a 1,000 SIP), ref = folio digits,
+# cp = scheme name, date = trade/instalment date when the message states one (else received time).
+# Templates are named by shape, not by fund house. Sender IDs of fund houses are unknown (SPEC Q-8), so
+# senderPattern accepts any header; the body patterns are specific enough on their own.
+# Allotment EMAILS seen so far state no amount, so they have no template (they go to UNPARSED review).
+templates:
+
+  # "Folio XXXXXXX1234 - Your SIP instalment of Rs. 999.95 towards <scheme> is processed. Units Allotted: 21.532."
+  - id: amc.sms.folio_instalment_processed
+    version: 1
+    source: SMS
+    recordType: INVESTMENT_CONFIRMATION
+    senderPattern: '.*'
+    regex: 'Folio\s+(?<ref>[X\d]+)\s*-\s*Your\s+SIP\s+instalment\s+of\s+Rs\.?\s*(?<amount>[\d,]+(?:\.\d{1,2})?)\s+towards\s+(?<cp>[\s\S]+?)\s+is\s+processed\.\s*Units\s+Allotted'
+    fixed: { direction: DR, channel: OTHER }
+
+  # "Your SIP Purchase in Folio 12345678/04 under <scheme> for Rs. 999.95 has been processed at the NAV of 203.751
+  #  for 4.908 units and 05-Nov-2026."
+  - id: amc.sms.sip_purchase_in_folio_under
+    version: 1
+    source: SMS
+    recordType: INVESTMENT_CONFIRMATION
+    senderPattern: '.*'
+    regex: 'Your\s+SIP\s+Purchase\s+in\s+Folio\s+(?<ref>\d+)(?:/\d+)?\s+under\s+(?<cp>[\s\S]+?)\s+for\s+Rs\.?\s*(?<amount>[\d,]+(?:\.\d{1,2})?)\s+has\s+been\s+processed\s+at\s+the\s+NAV\s+of\s+[\d.]+\s+for\s+[\d.]+\s+units\s+and\s+(?<date>\d{2}-[A-Za-z]{3}-\d{4})'
+    fixed: { direction: DR, channel: OTHER }
+
+  # "Your Purchase of Rs.999.95 for folio 1234567/38 in <scheme> is processed at NAV 50.357"
+  - id: amc.sms.purchase_for_folio
+    version: 1
+    source: SMS
+    recordType: INVESTMENT_CONFIRMATION
+    senderPattern: '.*'
+    regex: 'Your\s+Purchase\s+of\s+Rs\.?\s*(?<amount>[\d,]+(?:\.\d{1,2})?)\s+for\s+folio\s+(?<ref>\d+)(?:/\d+)?\s+in\s+(?<cp>[\s\S]+?)\s+is\s+processed\s+at\s+NAV'
+    fixed: { direction: DR, channel: OTHER }
+
+  # "Purchase SIP in Folio 1234567890 in <scheme> for Rs.999.95, NAV 20.61 / Trade date 05-Oct-2026 is processed"
+  - id: amc.sms.purchase_sip_in_folio
+    version: 1
+    source: SMS
+    recordType: INVESTMENT_CONFIRMATION
+    senderPattern: '.*'
+    regex: 'Purchase\s+SIP\s+in\s+Folio\s+(?<ref>\d+)\s+in\s+(?<cp>[\s\S]+?)\s+for\s+Rs\.?\s*(?<amount>[\d,]+(?:\.\d{1,2})?)\s*,\s*NAV\s+[\d.]+\s*/\s*Trade\s+date\s+(?<date>\d{2}-[A-Za-z]{3}-\d{4})\s+is\s+processed'
+    fixed: { direction: DR, channel: OTHER }
+
+  # "Your SIP Purchase of Rs.999.95 in Folio 12345678 in <scheme> for 29.128 units has been processed for NAV of
+  #  Rs.34.33 on 05-Oct-2026"
+  - id: amc.sms.sip_purchase_of_amount
+    version: 1
+    source: SMS
+    recordType: INVESTMENT_CONFIRMATION
+    senderPattern: '.*'
+    regex: 'Your\s+SIP\s+Purchase\s+of\s+Rs\.?\s*(?<amount>[\d,]+(?:\.\d{1,2})?)\s+in\s+Folio\s+(?<ref>\d+)\s+in\s+(?<cp>[\s\S]+?)\s+for\s+[\d.]+\s+units\s+has\s+been\s+processed\s+for\s+NAV\s+of\s+Rs\.?\s*[\d.]+\s+on\s+(?<date>\d{2}-[A-Za-z]{3}-\d{4})'
+    fixed: { direction: DR, channel: OTHER }
+
+  # "Your SIP transaction dated 05/08/2026 in <scheme> for Rs. 1000.00 under folio number 123456789012 is processed
+  #  and units 27.663 are alotted @ NAV of Rs. 36.1479."
+  - id: amc.sms.sip_transaction_dated
+    version: 1
+    source: SMS
+    recordType: INVESTMENT_CONFIRMATION
+    senderPattern: '.*'
+    regex: 'Your\s+SIP\s+transaction\s+dated\s+(?<date>\d{2}/\d{2}/\d{4})\s+in\s+(?<cp>[\s\S]+?)\s+for\s+Rs\.?\s*(?<amount>[\d,]+(?:\.\d{1,2})?)\s+under\s+folio\s+number\s+(?<ref>\d+)\s+is\s+processed'
+    fixed: { direction: DR, channel: OTHER }

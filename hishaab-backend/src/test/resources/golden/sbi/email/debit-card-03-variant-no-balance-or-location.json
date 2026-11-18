@@ -1,0 +1,22 @@
+{
+  "input": {
+    "source": "EMAIL",
+    "sender": "donotreply.sbiatm@alerts.sbi.co.in",
+    "body": "Transaction alert for your State Bank of India Debit Card\n\nTransaction Alert Message\n\nNov 9, 2026, 21:00\n\nDear Valued SBI Debit Card Holder,\n\nThe below transaction has been done using your SBI debit card.\n\nDescription\tValue\nBank\tSBI\nDate & Time\tNov 9, 2026, 21:00\nTransaction Number\t4321\nAmount (INR)\t500.00\nLast 4 Digit of Account\tX4092\nTransaction Type\tCASH WITHDRAWAL\nChannel\tATM\n\nIf not done by you, forward this email from email id registered with SBI to report@example.invalid to block your card.",
+    "receivedAtMs": 1794238440000
+  },
+  "expected": {
+    "class": "TRANSACTION",
+    "fields": {
+      "amountPaise": 50000,
+      "direction": "DR",
+      "accountLast4": "4092",
+      "channel": "ATM",
+      "counterpartyRaw": null,
+      "refNo": null,
+      "txnTime": "2026-11-09T21:00:00+05:30",
+      "balanceAfterPaise": null
+    },
+    "templateId": "sbi.email.debit_card_cash_withdrawal"
+  }
+}

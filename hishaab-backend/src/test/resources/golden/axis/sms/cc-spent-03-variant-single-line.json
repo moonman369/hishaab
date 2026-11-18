@@ -1,0 +1,22 @@
+{
+  "input": {
+    "source": "SMS",
+    "sender": "AX-AXISBK-S",
+    "body": "Spent INR 12,999.00 using Axis Bank Credit Card no. XX6604 on 21-10-26 10:00:00 IST at ELECTRO WORLD. Avl limit: INR 1,35,000.00. Not you? SMS BLOCK 6604 to +919000000000.",
+    "receivedAtMs": 1792557015000
+  },
+  "expected": {
+    "class": "TRANSACTION",
+    "fields": {
+      "amountPaise": 1299900,
+      "direction": "DR",
+      "accountLast4": "6604",
+      "channel": "CARD",
+      "counterpartyRaw": "ELECTRO WORLD",
+      "refNo": null,
+      "txnTime": "2026-10-21T10:00:00+05:30",
+      "balanceAfterPaise": null
+    },
+    "templateId": "axis.sms.cc_spent"
+  }
+}

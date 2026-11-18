@@ -1,0 +1,22 @@
+{
+  "input": {
+    "source": "SMS",
+    "sender": "VM-SBIUPI-S",
+    "body": "Dear UPI user A/C X4092 debited by 1,500.00 on date 02Nov26 trf to MEERA STORES Refno 630011223344. If not u? call 1800000000. -SBI",
+    "receivedAtMs": 1793601000000
+  },
+  "expected": {
+    "class": "TRANSACTION",
+    "fields": {
+      "amountPaise": 150000,
+      "direction": "DR",
+      "accountLast4": "4092",
+      "channel": "UPI",
+      "counterpartyRaw": "MEERA STORES",
+      "refNo": "630011223344",
+      "txnTime": "2026-11-02T12:00:00+05:30",
+      "balanceAfterPaise": null
+    },
+    "templateId": "sbi.sms.upi_debit"
+  }
+}

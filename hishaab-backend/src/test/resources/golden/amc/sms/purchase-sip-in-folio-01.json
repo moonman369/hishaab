@@ -1,0 +1,22 @@
+{
+  "input": {
+    "source": "SMS",
+    "sender": "AX-ZETAMF-S",
+    "body": "Purchase SIP in Folio 3300112233 in Zeta Multi-Cap Fund Regular Growth for Rs.999.95, NAV 20.61 / Trade date 05-Oct-2026 is processed & 48.518 units allotted. Transaction Confirmation along with the Account Statement link is sent to your registered email address. - ZETAMF. Explore Whatsapp Services : https://example.invalid/z/1",
+    "receivedAtMs": 1791268200000
+  },
+  "expected": {
+    "class": "INVESTMENT_CONFIRMATION",
+    "fields": {
+      "amountPaise": 99995,
+      "direction": "DR",
+      "accountLast4": null,
+      "channel": "OTHER",
+      "counterpartyRaw": "Zeta Multi-Cap Fund Regular Growth",
+      "refNo": "3300112233",
+      "txnTime": "2026-10-05T12:00:00+05:30",
+      "balanceAfterPaise": null
+    },
+    "templateId": "amc.sms.purchase_sip_in_folio"
+  }
+}

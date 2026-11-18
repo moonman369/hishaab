@@ -1,0 +1,13 @@
+{
+  "input": {
+    "source": "EMAIL",
+    "sender": "mfservice@kfintech.com",
+    "body": "SIP Transaction confirmation\n\nDear Investor,\n\nGreetings from Epsilon Mutual Fund!\n\nYour request for Systematic Investment Purchase of units in EPS Large and Midcap Fund - Regular Plan Growth for transaction date 05/11/2026, at a NAV of 36.7306 has been processed in folio no: 900000111222\n\nHowever, please note that the finalization of units is subject to standard terms and conditions being met as per scheme SID and SAI.",
+    "receivedAtMs": 1793991780000
+  },
+  "expected": {
+    "class": "INVESTMENT_CONFIRMATION",
+    "fields": null,
+    "templateId": null
+  }
+}

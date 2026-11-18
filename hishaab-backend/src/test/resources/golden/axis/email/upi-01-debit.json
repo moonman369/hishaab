@@ -1,0 +1,22 @@
+{
+  "input": {
+    "source": "EMAIL",
+    "sender": "alerts@axis.bank.in",
+    "body": "INR 215.00 was debited from your A/c no. XX7311.\n\n15-11-2026\n\nDear Asha Rao,\n\nHere's the summary of your transaction:\n\nAmount Debited:\nINR 215.00\n\nAccount Number:\nXX7311\n\nDate & Time:\n15-11-26, 20:43:51 IST\n\nTransaction Info:\nUPI/P2M/782000111222/CHAI POINT & CO\n\nIf this transaction was not initiated by you:\n\nTo block UPI:\n\nSMS BLOCKUPI <Customer ID> to +919000000000\nfrom your registered mobile number.\n\nCall us at:\n18000000000 (Toll Free)\n\nAlways open to help you.\n\nRegards,\nAxis Bank Ltd.",
+    "receivedAtMs": 1794755638000
+  },
+  "expected": {
+    "class": "TRANSACTION",
+    "fields": {
+      "amountPaise": 21500,
+      "direction": "DR",
+      "accountLast4": "7311",
+      "channel": "UPI",
+      "counterpartyRaw": "CHAI POINT & CO",
+      "refNo": "782000111222",
+      "txnTime": "2026-11-15T20:43:51+05:30",
+      "balanceAfterPaise": null
+    },
+    "templateId": "axis.email.upi"
+  }
+}

@@ -1,0 +1,22 @@
+{
+  "input": {
+    "source": "SMS",
+    "sender": "AX-AXISBK-S",
+    "body": "INR 6.00 debited\nA/c no. XX7311\n29-01-26, 14:14:51\nUPI/P2M/512398746021/Ravi Tea Corner\nNot you? SMS BLOCKUPI Cust ID to 919000000000\nAxis Bank",
+    "receivedAtMs": 1769676302000
+  },
+  "expected": {
+    "class": "TRANSACTION",
+    "fields": {
+      "amountPaise": 600,
+      "direction": "DR",
+      "accountLast4": "7311",
+      "channel": "UPI",
+      "counterpartyRaw": "Ravi Tea Corner",
+      "refNo": "512398746021",
+      "txnTime": "2026-01-29T14:14:51+05:30",
+      "balanceAfterPaise": null
+    },
+    "templateId": "axis.sms.upi"
+  }
+}

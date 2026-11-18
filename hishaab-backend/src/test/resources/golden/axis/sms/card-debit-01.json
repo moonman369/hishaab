@@ -1,0 +1,22 @@
+{
+  "input": {
+    "source": "SMS",
+    "sender": "AX-AXISBK-S",
+    "body": "INR 553.44 debited from A/c no. XX207311 on WWW SHOPKART  12-11-2026 11:35:47 IST. Avl bal: INR 7608.13. Not you? SMS BLOCKCARD XX8820 to +919000000000 - Axis Bank",
+    "receivedAtMs": 1794463560000
+  },
+  "expected": {
+    "class": "TRANSACTION",
+    "fields": {
+      "amountPaise": 55344,
+      "direction": "DR",
+      "accountLast4": "7311",
+      "channel": "CARD",
+      "counterpartyRaw": "WWW SHOPKART",
+      "refNo": null,
+      "txnTime": "2026-11-12T11:35:47+05:30",
+      "balanceAfterPaise": 760813
+    },
+    "templateId": "axis.sms.card_debit"
+  }
+}

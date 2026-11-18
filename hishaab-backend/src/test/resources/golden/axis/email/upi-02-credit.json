@@ -1,0 +1,22 @@
+{
+  "input": {
+    "source": "EMAIL",
+    "sender": "alerts@axis.bank.in",
+    "body": "INR 1916.61 was credited to your A/c.\n\n14-11-2026\n\nDear Asha Rao,\n\nHere's the summary of your transaction:\n\nAmount Credited:\nINR 1916.61\n\nAccount Number:\nXX7311\n\nDate & Time:\n14-11-26, 11:54:27 IST\n\nTransaction Info:\nUPI/P2A/668000333444/VIKRAMS/IOBA/UPI\n\nIf this transaction was not initiated by you:\n\nTo block UPI:\n\nSMS BLOCKUPI <Customer ID> to +919000000000\nfrom your registered mobile number.\n\nCall us at:\n18000000000 (Toll Free)\n\nAlways open to help you.\n\nRegards,\nAxis Bank Ltd.",
+    "receivedAtMs": 1794637480000
+  },
+  "expected": {
+    "class": "TRANSACTION",
+    "fields": {
+      "amountPaise": 191661,
+      "direction": "CR",
+      "accountLast4": "7311",
+      "channel": "UPI",
+      "counterpartyRaw": "VIKRAMS",
+      "refNo": "668000333444",
+      "txnTime": "2026-11-14T11:54:27+05:30",
+      "balanceAfterPaise": null
+    },
+    "templateId": "axis.email.upi"
+  }
+}

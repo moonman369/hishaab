@@ -1,0 +1,22 @@
+{
+  "input": {
+    "source": "SMS",
+    "sender": "AD-SBIINB-S",
+    "body": "Dear SBI User, your A/c X4092-credited by Rs.12,500.00 on 01Nov26 transfer from ROHAN MEHTA Ref No 630555666777 -SBI",
+    "receivedAtMs": 1793542500000
+  },
+  "expected": {
+    "class": "TRANSACTION",
+    "fields": {
+      "amountPaise": 1250000,
+      "direction": "CR",
+      "accountLast4": "4092",
+      "channel": "OTHER",
+      "counterpartyRaw": "ROHAN MEHTA",
+      "refNo": "630555666777",
+      "txnTime": "2026-11-01T19:45:00+05:30",
+      "balanceAfterPaise": null
+    },
+    "templateId": "sbi.sms.credit"
+  }
+}

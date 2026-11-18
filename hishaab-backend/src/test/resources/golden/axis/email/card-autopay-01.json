@@ -1,0 +1,22 @@
+{
+  "input": {
+    "source": "EMAIL",
+    "sender": "alerts@axis.bank.in",
+    "body": "Auto Pay of INR 2242.94 for STREAMCO* PRO SUB processed\n\n04-11-2026\n\nDear Customer,\n\nAuto Pay for e-mandate of INR 2242.94 for STREAMCO* PRO SUB has been processed on your Axis Bank Card no. XX8820 on 04-11-2026 at 00:01:16 IST. The transaction ID is 263000111222333444.\n\nTo manage your Auto Pay mandate with ID AbCdEf12345, please visit the SI Hub https://example.invalid/si . Terms and Conditions apply.\n\nIf this transaction was not initiated by you, please call us on 18000000000 (Toll Free) or write to us at support@example.invalid , or block your card by sending SMS BLOCKCARD 8820 to 9000000000.\n\nAlways open to help you.\n\nRegards,\nAxis Bank Ltd.",
+    "receivedAtMs": 1793730690000
+  },
+  "expected": {
+    "class": "TRANSACTION",
+    "fields": {
+      "amountPaise": 224294,
+      "direction": "DR",
+      "accountLast4": "8820",
+      "channel": "AUTOPAY",
+      "counterpartyRaw": "STREAMCO* PRO SUB",
+      "refNo": "263000111222333444",
+      "txnTime": "2026-11-04T00:01:16+05:30",
+      "balanceAfterPaise": null
+    },
+    "templateId": "axis.email.card_autopay"
+  }
+}

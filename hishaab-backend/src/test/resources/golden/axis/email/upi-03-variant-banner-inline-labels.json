@@ -1,0 +1,22 @@
+{
+  "input": {
+    "source": "EMAIL",
+    "sender": "alerts@axis.bank.in",
+    "body": "INR 2,500.00 was debited from your A/c no. XX7311.\n\nMake UPI spends rewarding with AXIS BANK RUPAY Credit Card Apply Now *T&Cs apply.\n\n03-11-2026\n\nDear Asha Rao,\n\nHere's the summary of your transaction:\n\nAmount Debited: INR 2,500.00\nAccount Number: XX7311\nDate & Time: 03-11-26, 07:15:00 IST\nTransaction Info: UPI/P2M/700999888777/FRESH MART\n\nAlways open to help you.",
+    "receivedAtMs": 1793670310000
+  },
+  "expected": {
+    "class": "TRANSACTION",
+    "fields": {
+      "amountPaise": 250000,
+      "direction": "DR",
+      "accountLast4": "7311",
+      "channel": "UPI",
+      "counterpartyRaw": "FRESH MART",
+      "refNo": "700999888777",
+      "txnTime": "2026-11-03T07:15:00+05:30",
+      "balanceAfterPaise": null
+    },
+    "templateId": "axis.email.upi"
+  }
+}

@@ -26,7 +26,10 @@ public interface SettingsService {
 
     int scanServerDelayMinutes();
 
-    /** Stable middle parts of bank sender IDs, uppercase (e.g. {@code AXISBK}). */
+    /** Allowlist entry meaning "accept every sender" (R-001-3); filtering is then up to the sync worker. */
+    String ALLOW_ALL_SENDERS = "*";
+
+    /** Stable middle parts of sender IDs, uppercase (e.g. {@code AXISBK}), or {@link #ALLOW_ALL_SENDERS}. */
     List<String> senderAllowlist();
 
     int matchSmsEmailWindowMinutes();

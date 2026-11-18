@@ -1,0 +1,13 @@
+{
+  "input": {
+    "source": "SMS",
+    "sender": "VK-GAMMMF-S",
+    "body": "Dear Investor, SIP of Rs.1000 dated 05-10-2026 under Folio 55500011 in Gamma Opportunities Fund Growth is due for debit from your STATE BANK OF INDIA account-GAMMF",
+    "receivedAtMs": 1790915400000
+  },
+  "expected": {
+    "class": "MANDATE_REMINDER",
+    "fields": null,
+    "templateId": null
+  }
+}

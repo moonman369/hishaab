@@ -1,0 +1,22 @@
+{
+  "input": {
+    "source": "SMS",
+    "sender": "AX-AXISBK-S",
+    "body": "Spent INR 2231.27 \nusing Axis Bank Credit Card no. XX6604 on 08-11-26 15:49:48 IST at \nJ K MOTORS. \nAvl limit: INR 147798.44. Not you? SMS BLOCK 6604 to +919000000000.",
+    "receivedAtMs": 1794133201000
+  },
+  "expected": {
+    "class": "TRANSACTION",
+    "fields": {
+      "amountPaise": 223127,
+      "direction": "DR",
+      "accountLast4": "6604",
+      "channel": "CARD",
+      "counterpartyRaw": "J K MOTORS",
+      "refNo": null,
+      "txnTime": "2026-11-08T15:49:48+05:30",
+      "balanceAfterPaise": null
+    },
+    "templateId": "axis.sms.cc_spent"
+  }
+}

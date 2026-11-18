@@ -1,0 +1,13 @@
+{
+  "input": {
+    "source": "EMAIL",
+    "sender": "deltamf@camsonline.com",
+    "body": "Debit alert for your installment of Systematic Investment Plan (SIP)\n\nDear Investor,\n\nGreetings from Delta Mutual Fund !\n\nWe wish to inform you that the installment amount towards your SIP will be debited from your bank account shortly. The details of the SIP are mentioned below:\n\nFolio Number\t: 41000022\nInstallment Date\t: 05-NOV-2026\nSIP registered under\t: Delta Mid Cap Fund - Regular Plan - Growth\nInstallment Amount (Rs.) :1000",
+    "receivedAtMs": 1793348640000
+  },
+  "expected": {
+    "class": "MANDATE_REMINDER",
+    "fields": null,
+    "templateId": null
+  }
+}

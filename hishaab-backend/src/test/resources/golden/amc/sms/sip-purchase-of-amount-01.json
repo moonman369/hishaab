@@ -1,0 +1,22 @@
+{
+  "input": {
+    "source": "SMS",
+    "sender": "VK-GAMMMF-S",
+    "body": "Dear Investor, Your SIP Purchase of Rs.999.95 in Folio 55500011 in Gamma Opportunities Fund Growth for 29.128 units has been processed for NAV of Rs.34.33 on 05-Oct-2026 - GAMMF",
+    "receivedAtMs": 1791271800000
+  },
+  "expected": {
+    "class": "INVESTMENT_CONFIRMATION",
+    "fields": {
+      "amountPaise": 99995,
+      "direction": "DR",
+      "accountLast4": null,
+      "channel": "OTHER",
+      "counterpartyRaw": "Gamma Opportunities Fund Growth",
+      "refNo": "55500011",
+      "txnTime": "2026-10-05T13:00:00+05:30",
+      "balanceAfterPaise": null
+    },
+    "templateId": "amc.sms.sip_purchase_of_amount"
+  }
+}

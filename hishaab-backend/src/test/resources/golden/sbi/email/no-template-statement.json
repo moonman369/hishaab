@@ -1,0 +1,13 @@
+{
+  "input": {
+    "source": "EMAIL",
+    "sender": "cbssbi.cas@alerts.sbi.bank.in",
+    "body": "E-account statement for your SBI account(s).\n\nDear Customer,\n\nYour account(s) details are available at your fingertips. You can view them online whenever required. For your convenience, please find attached your latest monthly statement.\n\nYour e-account statement is protected by a password, which is the last five digits of customer registered mobile number and date of birth (DOB) in DDMMYY format registered with Bank, for example if mobile number is XXXXX98765 and DOB is 1st January 1990 then password will be 98765010190.",
+    "receivedAtMs": 1791994380000
+  },
+  "expected": {
+    "class": "STATEMENT",
+    "fields": null,
+    "templateId": null
+  }
+}

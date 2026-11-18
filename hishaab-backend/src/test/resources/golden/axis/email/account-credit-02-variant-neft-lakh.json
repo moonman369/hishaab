@@ -1,0 +1,22 @@
+{
+  "input": {
+    "source": "EMAIL",
+    "sender": "alerts@axis.bank.in",
+    "body": "Credit transaction alert for Axis Bank A/c\n\n10-11-2026\n\nDear Asha Rao,\n\nThank you for banking with us.\n\nWe wish to inform you that your A/c no. XX7311 has been credited with INR 1,00,000.00 on 10-11-2026 at 12:00:00 IST by NEFT-SBIN0001234/123456789012/PAYOUT.\n\nTo check your available balance, please click here.\n\nShould you wish to reach us, please call 18000000000.\n\nAlways open to help you.\n\nRegards,\nAxis Bank Ltd.",
+    "receivedAtMs": 1794292500000
+  },
+  "expected": {
+    "class": "TRANSACTION",
+    "fields": {
+      "amountPaise": 10000000,
+      "direction": "CR",
+      "accountLast4": "7311",
+      "channel": "NEFT",
+      "counterpartyRaw": "NEFT-SBIN0001234",
+      "refNo": "123456789012",
+      "txnTime": "2026-11-10T12:00:00+05:30",
+      "balanceAfterPaise": null
+    },
+    "templateId": "axis.email.account_credit"
+  }
+}

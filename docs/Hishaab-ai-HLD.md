@@ -52,8 +52,9 @@ Hishaab.ai reads the transaction messages your banks already send you (SMS and e
 | In scope | Not in v1 (later) |
 |---|---|
 | Banks: **Axis**, **SBI** (savings) | UPI app notifications (PhonePe, GPay, super.money) |
-| Cards: Axis credit card, **SBI Card** (separate sender) | Cash and wallets (Paytm, Amazon Pay) |
-| Sources: bank **SMS** + bank **email** (Gmail) | Statement import (CSV/PDF) |
+| Cards: Axis credit card (no SBI Card, see D-23) | Cash and wallets (Paytm, Amazon Pay) |
+| Sources: bank **SMS** + bank **email** (Gmail), plus mutual-fund house (AMC) SIP SMS + email | Statement import (CSV/PDF) |
+| **Investments:** SIP, recurring deposit, FD, PPF schedules you enter; instalments auto-confirmed from messages (§4.13) | Portfolio value, NAV tracking, returns, tax reports |
 | First import: **last 1 month** | Budgets, recurring-payment detection |
 | Screens: Sync, Transactions, Review, Dashboard | Chat (built last, after data is trusted) |
 | Dark + light theme | Mobile OTP login (rejected, see D-14) |
@@ -95,6 +96,10 @@ Every big decision, in one place. If code and this table disagree, update one of
 | D-20 | **Hosting: Oracle VM**, Docker Compose + Nginx | Existing setup you already run. | Managed cloud |
 | D-21 | **Money stored as integer paise** | Floats cause rounding errors. | `double` / `float` |
 | D-22 | **Your edits stored separately** (`user_override`) | Rebuilds from raw messages must not wipe your changes. | Editing transaction rows only |
+| D-23 | **SBI Card dropped from v1**; cards = Axis credit cards only | You don't hold an SBI Card. Add it back as templates + an account type if that changes. | Building templates for a card with no samples |
+| D-24 | **Investments are not spend.** A SIP/RD/FD debit becomes kind `INVESTMENT`; schedules you enter generate expected **instalments**, which messages only *confirm*. A fund-house allotment message is evidence for an instalment and **never creates a transaction** on its own. | Counting SIPs as spend would inflate spend every month; counting both the bank debit and the AMC allotment would count each SIP twice. | Treating SIPs as a spend category; creating a transaction per allotment message |
+| D-25 | **Parser golden set is synthetic**, modelled on the shapes of your real messages; no real names, refs, folios, balances or links in the repo | Real samples carry personal data; the shapes are what the templates need. | Committing masked copies of real messages |
+| D-26 | **Sender allowlists open (`"*"`) for now**; the sync worker filters bank + fund-house messages on its side | Fund-house sender IDs and email addresses vary and aren't pinned yet; the classifier still decides what counts. | Blocking fund-house messages until every ID is collected |
 
 ---
 
@@ -346,6 +351,7 @@ Matching settings (stored in `settings`, tuned after real data):
 | `transfer` | Debit in SBI + credit in Axis (your own accounts) | Not spend, not income. |
 | `refund` | Credit from a merchant you paid earlier | Linked to the original; reduces that category's spend. |
 | `reversal` | Failed UPI money returned | Cancels the original; both hidden from totals. |
+| `investment` | SIP / RD / FD debit matching one of your investment schedules | Not spend. Shown as its own "invested" total and confirms the instalment (§4.13). |
 
 When the system cannot tell which kind it is, it asks in Review.
 
@@ -419,6 +425,11 @@ erDiagram
     SCAN_RUN ||--o{ REVIEW_ITEM : "reports"
     DEVICE ||--o{ RAW_MESSAGE : "uploaded"
     CHAT_SESSION ||--o{ CHAT_MESSAGE : "contains"
+    ACCOUNT ||--o{ INVESTMENT : "debited from"
+    INVESTMENT ||--o{ INSTALMENT : "expects"
+    INSTALMENT ||--o{ INSTALMENT_EVIDENCE : "proven by"
+    TRANSACTION ||--o| INSTALMENT_EVIDENCE : "bank debit"
+    RAW_MESSAGE ||--o{ INSTALMENT_EVIDENCE : "allotment / failed msg"
 
     RAW_MESSAGE {
         string id PK "sha256 or Gmail msg id"
@@ -478,7 +489,7 @@ erDiagram
     }
     ACCOUNT {
         uuid id PK
-        string bank "AXIS SBI SBI_CARD"
+        string bank "AXIS SBI"
         string type "SAVINGS CREDIT_CARD"
         string last4
         string nickname
@@ -554,9 +565,39 @@ erDiagram
         text content
         jsonb tool_calls
     }
+    INVESTMENT {
+        uuid id PK
+        string name
+        string type "SIP RD FD PPF OTHER"
+        bigint amount_paise
+        uuid account_id FK
+        string frequency "MONTHLY QUARTERLY YEARLY EVERY_N_DAYS EVERY_N_MONTHS ONE_TIME"
+        int interval_n
+        int schedule_day "1-31; 29-31 clamp to month end"
+        date start_date
+        date end_date
+        date maturity_date
+        string match_text "folio / scheme / mandate words"
+        int grace_days
+        bool active
+    }
+    INSTALMENT {
+        uuid id PK
+        uuid investment_id FK
+        date due_date
+        bigint expected_paise
+        string status "SCHEDULED CONFIRMED MARKED_PAID MISSED SKIPPED FAILED"
+        string status_source "AUTO USER"
+    }
+    INSTALMENT_EVIDENCE {
+        uuid instalment_id FK
+        uuid transaction_id FK "bank debit, if any"
+        string raw_message_id FK "allotment / failed msg, if any"
+        string kind "BANK_DEBIT AMC_CONFIRMATION FAILED_DEBIT"
+    }
 ```
 
-Other tables not drawn: `settings` (cron, windows, thresholds), `app_user`, `api_token`, `llm_call_log`, `audit_log`. Later: `budget`, `recurring_series`.
+Other tables not drawn: `settings` (cron, windows, thresholds), `app_user`, `api_token`, `llm_call_log`, `audit_log`. `user_override` can also target an instalment (key = investment + due date), so status changes you make survive rebuilds. Later: `budget`, `recurring_series`.
 
 **Storage rules**
 
@@ -624,6 +665,7 @@ sequenceDiagram
 
 - The scan time is stored as a cron string in `settings` and changed from the Settings screen. No redeploy needed.
 - SMS are processed **as soon as they arrive**. The daily job pulls emails, re-runs matching and sends the report.
+- **Investments in the report:** instalments confirmed in this run, instalments due in the next 7 days, and instalments that became missed (§4.13).
 - **Balance check:** most bank SMS include the available balance. The backend compares it with its own running balance. A gap means a missed or misread message, and creates a `BALANCE_GAP` review item. This is the strongest reliability check in the system.
 
 ### 4.10 Chat
@@ -682,6 +724,7 @@ Rules:
 | Categories | `GET/POST/PATCH/DELETE /categories`, `GET/POST/PATCH/DELETE /rules`, `POST /rules/{id}/apply-past` |
 | Accounts / merchants | `GET/PATCH /accounts`, `GET/PATCH /merchants` |
 | Sync | `GET /scan-runs/latest`, `GET /scan-runs`, `POST /scan-runs` (run now) |
+| Investments | `GET/POST/PATCH/DELETE /investments`, `GET /investments/{id}/instalments`, `GET /instalments?status&from&to`, `PATCH /instalments/{id}` |
 | Settings | `GET/PATCH /settings` (scan time, sender allowlist, thresholds) |
 | Chat | `POST /chat` (SSE), `GET /chat/sessions` |
 | Auth | `/oauth2/*`, `POST /auth/mobile/google`, `POST /auth/refresh`, `POST /devices`, `POST /api-tokens` |
@@ -693,10 +736,61 @@ The OpenAPI spec is generated from code and used to generate the TypeScript clie
 
 | Test | What it protects |
 |---|---|
-| **Parser golden set** — real sample SMS/emails per bank, with names and numbers masked, plus expected output | Banks change formats without notice. A failing test tells you which template broke. |
+| **Parser golden set** — synthetic SMS/emails per bank and fund house, modelled on the shapes of real samples (D-25), plus expected output | Banks change formats without notice. A failing test tells you which template broke. |
 | Dedup scenarios — SMS-only, email-only, both, late email, two look-alike payments, refund, card bill payment | The core promise (G1, G2) |
 | Rebuild test — wipe transactions, rebuild from raw + overrides, compare | D-06, D-22 |
 | Contract test — OpenAPI spec diff in CI | Apps don't break silently |
+
+### 4.13 Investments and SIP schedules
+
+<sub>Diagram file: `diagrams/19-instalment-lifecycle.mmd`</sub>
+
+**What it is.** You enter your investments once: SIPs, recurring deposits, fixed deposits/locked funds, PPF or anything else that debits on a schedule. The backend turns each schedule into expected **instalments** and confirms them from your bank and fund-house messages. Investment debits are **not spend** (D-24).
+
+**What you enter:** name, type (`SIP`, `RD`, `FD`, `PPF`, `OTHER`), amount, account it is debited from, frequency (monthly, quarterly, yearly, every N days, every N months, one-time), schedule day (29–31 fall on the last day of shorter months), start date, optional end date, optional lock-in/maturity date, active flag, and optional match words (folio number, scheme name, mandate name).
+
+```mermaid
+stateDiagram-v2
+    [*] --> Scheduled: generated from schedule
+    Scheduled --> Confirmed: debit / allotment matches
+    Scheduled --> Failed: failed-debit message matches
+    Scheduled --> Missed: nothing by due date + grace
+    Missed --> Confirmed: late debit arrives
+    Failed --> Confirmed: retry succeeds
+    Scheduled --> MarkedPaid: you mark paid
+    Scheduled --> Skipped: you skip
+    Missed --> MarkedPaid: you mark paid
+    Missed --> Skipped: you skip
+```
+
+**Two kinds of proof per SIP instalment**
+
+| Message | Example shape | What it does |
+|---|---|---|
+| Bank debit (SMS/email from the bank) | "INR 1,000 debited … ACH/NACH … <fund house>" | Becomes a transaction with kind `INVESTMENT` and confirms the instalment |
+| Fund-house allotment (SMS/email from the AMC) | "Your SIP purchase … Rs.999.95 … processed … units allotted … NAV" | Confirms the instalment. **Never creates a transaction** (it is not a separate money movement). Amount is net of stamp duty, so ₹1,000 shows as ₹999.95. |
+| Fund-house reminder | "… will be debited on 05/11/2026" | Ignored (classified as a reminder) |
+| Failed debit | "… debit failed / bounced …" | Marks the matching instalment `FAILED` |
+
+**Matching rules**
+- An instalment matches a message when **all** hold: amount equal (bank debit) or within the stamp-duty tolerance (allotment); same account when both sides know it; message date within the instalment's window (a few days before/after the due date); and the investment's match words appear in the text (when you set any).
+- **Two or more instalments match → nothing is confirmed; a review item asks you which.** Never a guess.
+- A debit that looks like an investment (SIP, NACH/ACH to a fund house, "mutual fund", folio …) but matches no schedule → the transaction stays `PENDING` and Review asks: **"Create SIP schedule from this?"** (or "Not an investment" → normal spend).
+- `MISSED` = still unconfirmed after due date + grace days. A late debit still confirms it.
+- **Your schedule is the source of truth.** Instalments are generated from it whether or not any SMS/email ever arrives, and you can always mark one paid by hand (the way to record SIPs whose bank debit isn't parsed yet). Matching only adds automatic confirmation on top.
+- You can change any instalment's status by hand. It is stored as a `user_override` and survives rebuilds; automatic rules never change a status you set.
+
+**Totals.** `INVESTMENT` is excluded from spend and income. The summary shows a separate **invested** total (confirmed + marked-paid instalments in the period).
+
+**UI screens**
+
+| Screen | Shows | Backend call |
+|---|---|---|
+| **Investments** (under More) | List of investments with next due date, this month's status, invested this month/year | `GET /investments`, `GET /summary` |
+| **Investment detail / edit** | Schedule fields, instalment timeline with status chips (scheduled, confirmed, paid, missed, skipped, failed), linked messages; actions: mark paid, skip, undo | `GET /investments/{id}/instalments`, `PATCH /instalments/{id}` |
+| **Add investment** | Form with live preview of the next 6 instalment dates | `POST /investments` |
+| **Dashboard** | "Invested" tile beside spent/received; "Upcoming investments (7 days)" strip | `GET /summary`, `GET /instalments?status=SCHEDULED` |
+| **Review** | "Which SIP is this?" and "Create SIP schedule from this?" cards | `GET /review` |
 
 ---
 
@@ -790,7 +884,8 @@ stateDiagram-v2
 
 - Indian bank SMS come from header IDs like `XX-AXISBK-S`. Only the middle part is stable.
 - The allowlist is stored on the backend (Settings) and matched on that middle part.
-- During setup, the app lists the senders in your inbox so you can tick the bank ones. Exact IDs for Axis, SBI and SBI Card are collected from **your** phone, not guessed.
+- **For now the allowlist is open (`"*"` = every sender, D-26)** because fund-house sender IDs vary. The worker therefore receives `"*"` and must apply its own filter (bank and fund-house senders only) before uploading; otherwise OTPs and personal SMS would leave the phone. Narrow the list to explicit IDs in Settings once they are known.
+- During setup, the app lists the senders in your inbox so you can tick the bank ones. Exact IDs for Axis, SBI and your mutual-fund houses are collected from **your** phone, not guessed.
 
 ---
 
@@ -887,6 +982,7 @@ flowchart LR
     Home --> Txns
     More --> Cats["Categories & rules"]
     More --> Accts["Accounts"]
+    More --> Inv["Investments<br/>(SIP, RD, FD, PPF)"]
     More --> Sync["Sync status<br/>& scan history"]
     More --> Set["Settings<br/>(scan time, senders, theme)"]
     Set --> Setup["Worker setup<br/>(mobile only)"]
@@ -899,7 +995,8 @@ flowchart LR
 | **Transaction detail** | All fields, category history, **the original SMS/email** | `GET /transactions/{id}` |
 | **Review** | Cards with one question each and quick answers | `GET /review`, `POST /review/{id}/resolve` |
 | **Categories & rules** | Category tree, rules, "apply to past" | `/categories`, `/rules` |
-| **Accounts** | Axis, SBI, SBI Card; nickname, balance check status | `/accounts` |
+| **Accounts** | Axis (savings + credit card), SBI; nickname, balance check status, **card aliases** (debit-card last 4 → account), merge | `/accounts` |
+| **Investments** | Schedules and instalment status (see §4.13) | `/investments`, `/instalments` |
 | **Sync status** | Last sync per device, last scan run, errors | `/scan-runs` |
 | **Settings** | Scan time, sender allowlist, theme, devices, API tokens | `/settings` |
 | **Chat** (built last) | Conversation with streamed answers + "based on" filters | `POST /chat` |
@@ -913,8 +1010,8 @@ One filter object in `packages/core`, used by both apps and sent to the API as-i
 |---|---|
 | Date | Today, this week, this month, last month, custom range |
 | Direction | Debit, credit |
-| Kind | Spend, income, transfer, refund, card payment |
-| Account | Axis, SBI, SBI Card |
+| Kind | Spend, income, transfer, refund, card payment, investment |
+| Account | Axis, Axis credit card, SBI |
 | Category | Multi-select, includes sub-categories |
 | Merchant / person | Search + multi-select |
 | Amount | Min / max |
@@ -1057,10 +1154,11 @@ This database becomes your only financial record. Backups are not optional.
 
 ```mermaid
 flowchart LR
-    P1["1 · Backend core<br/>raw storage, ingest API,<br/>Axis + SBI + SBI Card templates,<br/>golden test set"] --> P2["2 · Sync Worker<br/>Kotlin module, cursor,<br/>device token, backfill"]
+    P1["1 · Backend core<br/>raw storage, ingest API,<br/>Axis + SBI + fund-house templates,<br/>golden test set"] --> P2["2 · Sync Worker<br/>Kotlin module, cursor,<br/>device token, backfill"]
     P2 --> P3["3 · Dedup + Review<br/>Gmail fetch, matching,<br/>review queue, daily report"]
     P3 --> P4["4 · Web app<br/>dashboard, transactions,<br/>review, settings"]
     P4 --> P5["5 · Android UI<br/>same screens, push,<br/>offline cache"]
+    P4 --> PI["4b · Investments<br/>schedules, instalments,<br/>SIP auto-confirm"]
     P5 --> P6["6 · AI categorising<br/>rules from your edits,<br/>Gemini for unknowns"]
     P6 --> P7["7 · Chat<br/>tools over SQL"]
     P7 --> P8["Later<br/>UPI app notifications,<br/>budgets, recurring,<br/>statement import, cash"]
@@ -1068,7 +1166,7 @@ flowchart LR
 
 Chat comes last because it is only as good as the data under it.
 
-**MVP "done" means:** one month of real Axis + SBI + SBI Card data, with zero known duplicates, every transaction traceable to its message, the balance check passing for every account, and the review list empty after you answer it.
+**MVP "done" means:** one month of real Axis + SBI data (plus your SIP instalments confirmed), with zero known duplicates, every transaction traceable to its message, the balance check passing for every account, and the review list empty after you answer it.
 
 ---
 
@@ -1092,12 +1190,13 @@ Chat comes last because it is only as good as the data under it.
 |---|---|---|
 | O-01 | Subdomain | `<TBD>.moonman.in` |
 | O-02 | **Gmail access method** | Gmail API needs an OAuth app. If that app stays in Google's "Testing" mode, refresh tokens may expire after about a week, breaking daily email fetch. Options: move the OAuth app to production status, or use IMAP with an app password. Verify before building `mail`. |
-| O-03 | Exact sender IDs for Axis, SBI, SBI Card | Collect from your phone during setup |
+| O-03 | Exact sender IDs for Axis, SBI and your fund houses | Allowlist open (`"*"`) for now (D-26); pin IDs later from your phone |
 | O-04 | Do you hold a super.money credit card? | If yes, add it as an account/source |
 | O-05 | Chart libraries (web + mobile) | Pick maintained ones at UI build time |
 | O-06 | SSE streaming in React Native | Confirm a working approach before building Chat on mobile |
 | O-07 | Light theme exact values | Designed during visual design |
 | O-08 | UPI app notifications (later) | Needs Android notification-access permission; useful for clearer merchant names |
+| O-09 | Bank-side SIP debit message (SBI ACH/NACH debit SMS or email) | No sample yet. Not blocking: schedules hold regardless and instalments can be marked paid by hand. Until a template exists these debits go to Review as unparsed; fund-house allotments still confirm instalments. |
 
 ---
 
@@ -1117,3 +1216,7 @@ Chat comes last because it is only as good as the data under it.
 | **Scan run** | One daily processing cycle, with its counts and errors. |
 | **Device token** | A key that lets the phone upload SMS and nothing else. |
 | **Paise** | 1/100 of a rupee. All money is stored in paise. |
+| **SIP** | Systematic Investment Plan: a fixed amount invested in a mutual fund on a schedule. |
+| **AMC** | Asset Management Company: the fund house. Sends SIP reminders and allotment messages. |
+| **Instalment** | One expected payment of an investment schedule, with a status (scheduled, confirmed, …). |
+| **Stamp duty (MF)** | 0.005% deducted from mutual-fund purchases; why a ₹1,000 SIP shows ₹999.95 allotted. |

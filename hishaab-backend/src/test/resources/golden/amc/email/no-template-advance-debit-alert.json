@@ -1,0 +1,13 @@
+{
+  "input": {
+    "source": "EMAIL",
+    "sender": "betamf@camsonline.com",
+    "body": "Advance debit alert for your upcoming SIP with Beta MF\n\nDear Investor,\n\nGreetings from Beta Mutual Fund!\n\nWe thank you for your investment through Systematic Investment Plan (SIP) in Beta Small Cap Fund-Regular Plan-Growth under folio 7000123.\n\nPlease note that your next installment of Rs.1000 is due on 05-NOV-2026 which will be debited from your STATE BANK OF INDIA.\n\nKindly note that, the above debit will be initiated from your account only if the OTM (One Time Mandate) is registered and confirmed by your bank.\n\nPlease ignore the above if your OTM is registered with the banker and your account is already being debited on the respective installment date.\n\nAdditionally, the units for the said installment will be created as per applicable NAV, only on realisation of installment proceeds in scheme account.",
+    "receivedAtMs": 1793355660000
+  },
+  "expected": {
+    "class": "MANDATE_REMINDER",
+    "fields": null,
+    "templateId": null
+  }
+}

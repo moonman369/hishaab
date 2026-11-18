@@ -1,0 +1,13 @@
+{
+  "input": {
+    "source": "SMS",
+    "sender": "AX-AXISBK-S",
+    "body": "Your statement for Axis Bank Credit Card no. XX1187 is generated.\nDue on: 05-12-26\nTotal amt: INR  Dr. 1234.5\nMin amt due: INR  Dr. 100.00\nPay at example.invalid/pay\nTo view fees & charges: example.invalid/kfs\nTo view/download statement: https://example.invalid/s/Qw12",
+    "receivedAtMs": 1794886200000
+  },
+  "expected": {
+    "class": "STATEMENT",
+    "fields": null,
+    "templateId": null
+  }
+}

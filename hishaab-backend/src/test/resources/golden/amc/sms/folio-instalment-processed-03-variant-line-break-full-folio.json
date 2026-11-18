@@ -1,0 +1,22 @@
+{
+  "input": {
+    "source": "SMS",
+    "sender": "VK-ALPHMF-S",
+    "body": "Folio 1234567890 - Your SIP instalment of Rs.4999.75 towards Alpha Value Fund\nis processed. Units Allotted: 9.001. Regards, Alpha MF.",
+    "receivedAtMs": 1794018600000
+  },
+  "expected": {
+    "class": "INVESTMENT_CONFIRMATION",
+    "fields": {
+      "amountPaise": 499975,
+      "direction": "DR",
+      "accountLast4": null,
+      "channel": "OTHER",
+      "counterpartyRaw": "Alpha Value Fund",
+      "refNo": "1234567890",
+      "txnTime": "2026-11-07T08:00:00+05:30",
+      "balanceAfterPaise": null
+    },
+    "templateId": "amc.sms.folio_instalment_processed"
+  }
+}

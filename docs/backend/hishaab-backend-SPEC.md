@@ -5,7 +5,7 @@
 | **Component** | `hishaab-backend` (Spring Boot service) |
 | **Repo path** | `hishaab/backend/` |
 | **Design reference** | `docs/Hishaab-ai-HLD.md` (the "HLD") — the *why*. This file is the *what to build and how to check it*. |
-| **Version** | Spec v1.0 — 17 Nov 2026 |
+| **Version** | Spec v1.1 — 18 Nov 2026 (investments, synthetic golden set, SBI Card dropped) |
 | **Audience** | Claude Code and Ayan |
 
 ---
@@ -35,7 +35,7 @@
 | H-7 | No new dependency without listing it in §6 and asking first. |
 | H-8 | No secrets in code or committed files. Config comes from env vars; `.env.example` lists them with fake values. |
 | H-9 | Anything the system is unsure about becomes a **review item**. Never silently guess a match, a kind or a category. |
-| H-10 | Totals exclude `PENDING` and `HIDDEN` transactions and the kinds `TRANSFER`, `CC_PAYMENT`, `REVERSAL` from spend/income (see SPEC-041). |
+| H-10 | Totals exclude `PENDING` and `HIDDEN` transactions and the kinds `TRANSFER`, `CC_PAYMENT`, `REVERSAL`, `INVESTMENT` from spend/income (see SPEC-041). Investments have their own `investedPaise` total. |
 
 ### 0.3 Spec format
 
@@ -45,7 +45,7 @@ Each spec has: **Goal · Depends on · Scope · Data · API · Rules (R-) · Acc
 
 ## 1. Context in one paragraph
 
-Hishaab.ai turns bank SMS (uploaded raw by an Android worker) and bank emails (pulled by the server from Gmail) into one clean list of transactions. Each real transaction is stored once (dedup), linked to every message that proves it (evidence), categorised (your rules first, AI only for unknown merchants), and anything unclear goes to a review queue. A daily job pulls email, re-runs matching, checks balances and pushes a report. A chat agent answers questions using read-only tools. Banks in v1: **Axis, SBI (savings), SBI Card (credit card)**. One user. See HLD §1–§4.
+Hishaab.ai turns bank SMS (uploaded raw by an Android worker) and bank emails (pulled by the server from Gmail) into one clean list of transactions. Each real transaction is stored once (dedup), linked to every message that proves it (evidence), categorised (your rules first, AI only for unknown merchants), and anything unclear goes to a review queue. A daily job pulls email, re-runs matching, checks balances and pushes a report. A chat agent answers questions using read-only tools. Banks in v1: **Axis (savings + credit card), SBI (savings)**; plus **mutual-fund houses (AMCs)** for SIP messages. You also record investments (SIP, RD, FD, PPF) whose instalments are confirmed from messages (SPEC-045/046). One user. See HLD §1–§4, §4.13.
 
 ---
 
@@ -132,7 +132,7 @@ Cross-module side effects go through **application events** (`@ApplicationModule
 | Config | `@ConfigurationProperties` records under `hishaab.*` |
 | Profiles | `dev` (local, password login allowed), `test`, `prod` |
 | Logging | SLF4J, structured key=value; message bodies only at `DEBUG` and masked |
-| Migrations | `V{n}__{snake_case}.sql`, one concern per file |
+| Migrations | `V{n}__{snake_case}.sql`, one concern per file. Version numbers written in specs that are not built yet are **placeholders**: the real file takes the next free number when the spec is built (built so far: V1 to V5) |
 
 ### 2.5 Global Definition of Done
 
@@ -155,9 +155,9 @@ Status: `TODO` · `IN PROGRESS` · `DONE` · `BLOCKED (reason)`
 | | SPEC-001 | Settings | 000 | DONE |
 | 1 Ingest & parse | SPEC-010 | Devices & device tokens | 000 | DONE |
 | | SPEC-011 | SMS ingest API | 001, 010 | DONE |
-| | SPEC-012 | Classifier | 011 | IN PROGRESS (AC-012-1..5 pass; AC-012-6 waits on the SPEC-013 golden set) |
-| | SPEC-013 | Parse templates + golden set | 012 | **BLOCKED (needs masked sample SMS/emails from Ayan)** |
-| | SPEC-014 | Normalisation | 013 | TODO |
+| | SPEC-012 | Classifier | 011 | DONE |
+| | SPEC-013 | Parse templates + golden set | 012 | DONE |
+| | SPEC-014 | Normalisation | 013 | DONE |
 | | SPEC-015 | Processing orchestrator | 012–014 | TODO |
 | 2 Email | SPEC-020 | Mail fetcher | 015 | **BLOCKED (HLD O-02: Gmail API vs IMAP)** |
 | 3 Match & review | SPEC-030 | Accounts & merchants | 015 | TODO |
@@ -166,7 +166,9 @@ Status: `TODO` · `IN PROGRESS` · `DONE` · `BLOCKED (reason)`
 | | SPEC-033 | Review queue | 031 | TODO |
 | | SPEC-034 | Overrides & rebuild | 031, 033 | TODO |
 | | SPEC-035 | Balance check | 031, 033 | TODO |
-| | SPEC-036 | Scheduler, scan runs, report, push | 020, 033 | TODO |
+| | SPEC-036 | Scheduler, scan runs, report, push | 020, 033 (046 for the investment lines) | TODO |
+| 3b Investments | SPEC-045 | Investments & schedules | 030, 034 | TODO |
+| | SPEC-046 | Instalment matching & lifecycle | 045, 031, 032, 033 | TODO |
 | 4 API & auth | SPEC-040 | Transactions query | 031 | TODO |
 | | SPEC-041 | Summary | 040 | TODO |
 | | SPEC-042 | Edit, split, merge | 034 | TODO |
@@ -179,7 +181,7 @@ Status: `TODO` · `IN PROGRESS` · `DONE` · `BLOCKED (reason)`
 | 6 Chat | SPEC-070 | Chat agent & tools | 041, 060 | TODO |
 | 9 Ops | SPEC-090 | Container, deploy, backup, CI | 050 | TODO |
 
-Recommended order: 000 → 001 → 010 → 011 → 012 → (013 when unblocked) → 014 → 015 → 030 → 031 → 033 → 032 → 034 → 035 → 040 → 043 → 041 → 042 → 044 → 050 → 020 → 036 → 090 → 060 → 061 → 062 → 070.
+Recommended order: 000 → 001 → 010 → 011 → 012 → 013 + 014 → 015 → 030 → 031 → 033 → 032 → 034 → 045 → 046 → 035 → 040 → 043 → 041 → 042 → 044 → 050 → 020 → 036 → 090 → 060 → 061 → 062 → 070.
 
 ---
 
@@ -208,15 +210,22 @@ id = "gmail:" + <Gmail message id>      // or "imap:" + <Message-ID header> if I
 |---|---|
 | `Source` | `SMS`, `EMAIL` |
 | `RawStatus` | `NEW`, `CLASSIFIED`, `PARSED`, `IGNORED`, `FAILED`, `ERROR` |
-| `MessageClass` | `TRANSACTION`, `OTP`, `PROMO`, `MANDATE_REMINDER`, `FAILED_TXN`, `BALANCE_ONLY`, `STATEMENT`, `UNKNOWN` |
+| `MessageClass` | `TRANSACTION`, `INVESTMENT_CONFIRMATION`, `OTP`, `PROMO`, `MANDATE_REMINDER`, `FAILED_TXN`, `BALANCE_ONLY`, `STATEMENT`, `UNKNOWN` |
 | `Direction` | `DR`, `CR` |
 | `Channel` | `UPI`, `CARD`, `NEFT`, `IMPS`, `RTGS`, `ATM`, `AUTOPAY`, `OTHER` |
-| `TxnKind` | `SPEND`, `INCOME`, `TRANSFER`, `REFUND`, `CC_PAYMENT`, `REVERSAL` |
+| `TxnKind` | `SPEND`, `INCOME`, `TRANSFER`, `REFUND`, `CC_PAYMENT`, `REVERSAL`, `INVESTMENT` |
 | `TxnStatus` | `CONFIRMED`, `PENDING`, `HIDDEN` |
 | `CategorySource` | `USER`, `RULE`, `AI`, `NONE` |
 | `MatchMethod` | `FIRST`, `REF`, `WINDOW`, `MANUAL` |
-| `ReviewType` | `AMBIGUOUS_MATCH`, `UNPARSED`, `LOW_CONFIDENCE`, `UNKNOWN_CATEGORY`, `UNKNOWN_KIND`, `BALANCE_GAP`, `ORPHAN_OVERRIDE` |
+| `ReviewType` | `AMBIGUOUS_MATCH`, `UNPARSED`, `LOW_CONFIDENCE`, `UNKNOWN_CATEGORY`, `UNKNOWN_KIND`, `BALANCE_GAP`, `ORPHAN_OVERRIDE`, `INSTALMENT_AMBIGUOUS`, `SIP_SCHEDULE_SUGGESTION` |
 | `ReviewStatus` | `OPEN`, `RESOLVED`, `DISMISSED`, `AUTO_CLOSED` |
+| `Bank` | `AXIS`, `SBI` (template metadata; fund houses are not banks) |
+| `AccountType` | `SAVINGS`, `CREDIT_CARD` |
+| `RecordType` | `TRANSACTION`, `INVESTMENT_CONFIRMATION` (on `parse_template` and `parsed_record`) |
+| `InvestmentType` | `SIP`, `RD`, `FD`, `PPF`, `OTHER` |
+| `Frequency` | `MONTHLY`, `QUARTERLY`, `YEARLY`, `EVERY_N_DAYS`, `EVERY_N_MONTHS`, `ONE_TIME` |
+| `InstalmentStatus` | `SCHEDULED`, `CONFIRMED`, `MARKED_PAID`, `MISSED`, `SKIPPED`, `FAILED` |
+| `InstalmentEvidenceKind` | `BANK_DEBIT`, `AMC_CONFIRMATION`, `FAILED_DEBIT` |
 
 ### 4.4 Error format
 
@@ -295,7 +304,7 @@ Seeded keys and defaults:
 | `scan.cron` | `"0 0 22 * * *"` (22:00 IST) | worker config, SPEC-036 |
 | `scan.zone` | `"Asia/Kolkata"` | SPEC-036 |
 | `scan.serverDelayMinutes` | `15` | SPEC-036 |
-| `senders.allowlist` | `[]` (filled during setup) | SPEC-011, worker |
+| `senders.allowlist` | `["*"]` = accept every sender (V5; was `[]`). Can be narrowed to explicit IDs later | SPEC-011, worker |
 | `match.smsEmailWindowMinutes` | `180` | SPEC-031 |
 | `ai.categoryConfidenceMin` | `0.80` | SPEC-061 |
 | `backfill.days` | `31` | worker, SPEC-020 |
@@ -307,7 +316,7 @@ Seeded keys and defaults:
 **Rules**
 - R-001-1 Unknown keys are rejected (400 `UNKNOWN_SETTING`).
 - R-001-2 `scan.cron` must be a valid Spring 6-field cron; invalid → 400 `INVALID_CRON`.
-- R-001-3 Each allowlist entry is the stable middle part of the sender ID (e.g. `AXISBK`), uppercase, 3–8 letters.
+- R-001-3 Each allowlist entry is the stable middle part of the sender ID (e.g. `AXISBK`), uppercase, 3–8 letters, or the wildcard `"*"` meaning **accept every sender**. With `"*"` the sync worker must do its own bank/fund-house filtering before upload (HLD §5.7).
 - R-001-4 Changing a setting publishes `SettingsChanged(key)`.
 
 **Acceptance criteria**
@@ -398,7 +407,7 @@ Response 200:
 **Rules**
 - R-011-1 Batch size 1–500, else 400.
 - R-011-2 Server recomputes the ID (§4.1). Mismatch → item rejected `HASH_MISMATCH`.
-- R-011-3 Sender's middle part not in `senders.allowlist` → rejected `SENDER_NOT_ALLOWED` (defence in depth; the worker should already filter).
+- R-011-3 Sender's middle part not in `senders.allowlist` → rejected `SENDER_NOT_ALLOWED` (defence in depth; the worker should already filter). If the allowlist contains `"*"`, every sender is accepted.
 - R-011-4 Existing ID → listed in `duplicate`, not stored again, not an error.
 - R-011-5 Each accepted message is stored with `source=SMS`, `status=NEW`, `device_id`, and publishes `RawMessageReceived(id)` **after commit**.
 - R-011-6 `cursorMs` in the response = highest `receivedAtMs` among `accepted` ∪ `duplicate`, and is saved on the device row together with `last_sync_at`. It never moves backwards.
@@ -411,6 +420,7 @@ Response 200:
 - AC-011-4 Sender `VM-PROMOS` with allowlist `[AXISBK]` → rejected `SENDER_NOT_ALLOWED`.
 - AC-011-5 Batch whose highest time is older than the device's stored cursor → cursor unchanged.
 - AC-011-6 501 messages → 400 `BATCH_TOO_LARGE`.
+- AC-011-7 Allowlist `["*"]` → a fund-house sender and a bank sender are both accepted.
 
 **Tests:** `IngestSmsIT` (Testcontainers), `SmsIdTest` (shared vectors also used by the worker).
 
@@ -434,9 +444,9 @@ Response 200:
 
 **Rules**
 - R-012-1 Output one `MessageClass` (§4.3) plus a short `reason` string.
-- R-012-2 Check order: `OTP` → `PROMO` → `FAILED_TXN` → `MANDATE_REMINDER` → `BALANCE_ONLY` → `STATEMENT` → `TRANSACTION` → `UNKNOWN`. First match wins.
+- R-012-2 Check order: `OTP` → `INVESTMENT_CONFIRMATION` → `PROMO` → `FAILED_TXN` → `MANDATE_REMINDER` → `BALANCE_ONLY` → `STATEMENT` → `TRANSACTION` → `UNKNOWN`. First match wins.
 - R-012-3 `TRANSACTION` needs both an amount pattern and a completed-action word (e.g. *debited*, *credited*, *spent*, *withdrawn*, *sent*, *received*). Future tense (*will be debited*, *due*, *scheduled*) is `MANDATE_REMINDER`.
-- R-012-4 Result: `TRANSACTION` → status `CLASSIFIED`, publish `MessageClassified`; `FAILED_TXN` → `FAILED`; `UNKNOWN` → status `CLASSIFIED` with class `UNKNOWN` (handled by SPEC-015); all others → `IGNORED` with `ignore_reason` = class.
+- R-012-4 Result: `TRANSACTION` and `INVESTMENT_CONFIRMATION` → status `CLASSIFIED`, publish `MessageClassified`; `FAILED_TXN` → `FAILED`; `UNKNOWN` → status `CLASSIFIED` with class `UNKNOWN` (handled by SPEC-015); all others → `IGNORED` with `ignore_reason` = class.
 - R-012-5 The classifier is a pure function `classify(sender, body) → Classification` with no DB access, so it is easy to test.
 
 **Acceptance criteria** (bodies below are illustrative; real ones come from the golden set)
@@ -446,12 +456,15 @@ Response 200:
 - AC-012-4 "Avl Bal in A/c XX1234 is Rs 10,000" (no debit/credit) → `BALANCE_ONLY`.
 - AC-012-5 "Rs 450.00 debited from A/c XX1234 ... UPI Ref 4321..." → `TRANSACTION`.
 - AC-012-6 Every message in the golden set (SPEC-013) is classified as its fixture says.
+- AC-012-7 A fund-house allotment ("Your SIP Purchase … Rs.999.95 … processed … NAV …") → `INVESTMENT_CONFIRMATION`; it is never a `TRANSACTION`.
+- AC-012-8 A fund-house reminder ("… SIP … will be debited on …" / "… is due for debit …") and a mandate-registration notice → `MANDATE_REMINDER`.
+- R-012-6 `INVESTMENT_CONFIRMATION` = mentions a folio **and** says the purchase was processed/allotted **and** mentions units or NAV. It is checked right after OTP so an allotment is never mistaken for a bank debit (SPEC-046, HLD D-24).
 
 **Tasks**
 - [x] Classification record + rules loader
 - [x] Ordered rule engine
 - [x] Unit tests for AC-012-1..5
-- [ ] Hook into golden runner when SPEC-013 lands
+- [x] Hook into golden runner when SPEC-013 lands
 
 ---
 
@@ -459,15 +472,17 @@ Response 200:
 
 **Goal:** Pull fields out of `TRANSACTION` messages using versioned, bank-specific regex templates, proven by a golden test set.
 
-**Depends on:** 012 · **BLOCKED** until Ayan provides 5–10 masked samples per source: Axis SMS, Axis email, SBI SMS, SBI email, SBI Card SMS, SBI Card email.
+**Depends on:** 012 · Samples received 2026-11-18 (Axis SMS + email, SBI SMS + email, fund-house SIP SMS + email). They are used **only as a reference for message shapes**; see the fixture rule below. No SBI Card (HLD D-23).
 
 **Golden set layout**
 ```
 src/test/resources/golden/
-  axis/sms/001.json
-  axis/email/001.json
+  axis/sms/<shape>-<n>.json
+  axis/email/...
   sbi/sms/...
-  sbicard/sms/...
+  sbi/email/...
+  amc/sms/...        # mutual-fund houses (SIP reminders, allotments)
+  amc/email/...
 ```
 Each fixture:
 ```json
@@ -481,10 +496,13 @@ Each fixture:
 }
 ```
 
-**Masking rule for fixtures:** replace real names with fake ones of similar shape, change every digit of ref nos and balances, keep amounts realistic, keep **all punctuation, spacing and line breaks exactly**.
+**Fixture rule (HLD D-25):** fixtures are **synthetic**. Each one copies the *shape* of a real message (wording, punctuation, line breaks, field order, ref/date formats) but every value is invented: names, merchants, refs, account digits, balances, folios, phone numbers, links. No real value from the samples may appear in the repo. Email bodies are reconstructed from rendered emails as `subject + "\n\n" + text` (R-020-3); re-check them against the real `text/plain` part when SPEC-020 lands.
 
-**Templates** — `src/main/resources/parse-templates/<bank>.yml`
+**Coverage rule (replaces the earlier 30% hold-out):** every template has at least one fixture copying a real sample's shape **plus at least two synthetic variants** (different amounts incl. thousands separators, merchants, dates, spacing/line breaks, letter case). Every sample shape that fits no template is a fixture too, expecting no template (→ UNPARSED or ignored).
+
+**Templates** — `src/main/resources/parse-templates/<bank>.yml` (top-level key `templates:`, then a list)
 ```yaml
+templates:
 - id: axis.sms.upi_debit
   version: 1
   bank: AXIS
@@ -492,17 +510,20 @@ Each fixture:
   senderPattern: "AXISBK"
   regex: "(?s)INR (?<amount>[\\d,]+\\.\\d{2}) debited.*?A/c no\\. XX(?<last4>\\d{4}).*?UPI/P2[AM]/(?<ref>\\d{12})/(?<cp>[^\\n]+)"
   fixed: { direction: DR, channel: UPI }
+  accountType: SAVINGS            # SAVINGS | CREDIT_CARD (used by R-030-1)
+  recordType: TRANSACTION         # TRANSACTION | INVESTMENT_CONFIRMATION
 ```
-Named groups recognised: `amount`, `dir`, `last4`, `channel`, `ref`, `cp`, `date`, `time`, `datetime`, `bal`. `fixed:` sets fields the text doesn't spell out.
+Named groups recognised: `amount`, `dir`, `last4`, `channel`, `ref`, `cp`, `date`, `time`, `datetime`, `bal`. `fixed:` sets fields the text doesn't spell out. `senderPattern` is a regex that must fully match the sender's middle part (SMS, e.g. `AXISBK`) or the lowercased from-address (EMAIL). Templates are case-insensitive and should use `\s+` wherever banks vary spacing or line breaks.
 
-**Data** — `V4__parse.sql`: `parse_template` (id, version, bank, source, sender_pattern, regex, fixed JSONB, active; PK `(id, version)`) and `parsed_record` (HLD §4.7 columns, plus `template_id`, `template_version`, `parser` `TEMPLATE|LLM`, `confidence`).
+**Data** — `V4__parse.sql`: `parse_template` (id, version, bank, source, sender_pattern, regex, regex_hash, fixed JSONB, account_type, record_type, active; PK `(id, version)`) and `parsed_record` (HLD §4.7 columns, plus `template_id`, `template_version`, `parser` `TEMPLATE|LLM`, `record_type`, `confidence`; one per raw message).
 
 **Rules**
 - R-013-1 Templates are loaded from YAML at startup and upserted into `parse_template` by `(id, version)`. Changing a regex means a **new version**; old versions stay for audit.
-- R-013-2 Candidate templates = matching `bank`, `source` and `senderPattern`. Try in YAML order; first full match wins.
+- R-013-2 Candidate templates = matching `source` and `senderPattern`. Try in YAML file order (files sorted by name); the first template whose regex is **found** in the body and whose captures normalise cleanly (SPEC-014) wins.
 - R-013-3 A template match must yield at least `amount` and `direction`; otherwise it doesn't count as a match.
 - R-013-4 No match → no `parsed_record`; message goes to the unparsed path (SPEC-015).
 - R-013-5 Template parse confidence = `1.0`.
+- R-013-6 Fund-house allotment templates have `recordType: INVESTMENT_CONFIRMATION`; `ref` = folio digits, `cp` = scheme name. These records never become transactions (R-031-8); SPEC-046 consumes them.
 
 **Acceptance criteria**
 - AC-013-1 A parameterised golden test runs every fixture; each produces exactly the expected class, template ID and fields.
@@ -510,11 +531,11 @@ Named groups recognised: `amount`, `dir`, `last4`, `channel`, `ref`, `cp`, `date
 - AC-013-3 Changing a template's regex without bumping `version` fails a startup check (hash of regex stored per version).
 
 **Tasks**
-- [ ] Receive and mask samples (Ayan)
-- [ ] Fixture loader + parameterised golden test
-- [ ] Template YAML loader + DB upsert
-- [ ] Template engine
-- [ ] Templates for Axis, SBI, SBI Card (SMS + email)
+- [x] Receive samples (Ayan) — used as shape reference only
+- [x] Fixture loader + parameterised golden test
+- [x] Template YAML loader + DB upsert
+- [x] Template engine
+- [x] Templates for Axis, SBI (SMS + email) and fund-house SIP allotments (SMS + email)
 
 ---
 
@@ -527,7 +548,7 @@ Named groups recognised: `amount`, `dir`, `last4`, `channel`, `ref`, `cp`, `date
 **Rules**
 - R-014-1 `amount`/`bal` → paise via `Money.parseInr`.
 - R-014-2 `dir` words → `DR` (*debited, spent, withdrawn, sent, paid, purchase*) or `CR` (*credited, received, deposited, refund*). Unknown word → parse fails.
-- R-014-3 Dates: accept at least `dd-MM-yy`, `dd-MM-yyyy`, `dd/MM/yy`, `dd/MM/yyyy`, `ddMMMyy`, `dd-MMM-yy`, `dd MMM yyyy`, with optional `HH:mm[:ss]`. Interpreted in `Asia/Kolkata`.
+- R-014-3 Dates: accept at least `dd-MM-yy`, `dd-MM-yyyy`, `dd/MM/yy`, `dd/MM/yyyy`, `ddMMMyy`, `dd-MMM-yy`, `dd-MMM-yyyy`, `dd MMM yyyy`, `MMM dd, yyyy`, with optional `HH:mm[:ss]`. Month names are case-insensitive English; two-digit years are 20yy. Interpreted in `Asia/Kolkata`.
 - R-014-4 `txnTime`: date+time from text if present; date only → that date at the received time-of-day, but if that is in the future then 23:59:59 of that date; nothing → `receivedAt`.
 - R-014-5 `ref`: digits only kept; must be 6–22 digits, else `null`.
 - R-014-6 `cp` (counterparty): trim, collapse spaces, strip trailing ref fragments; keep original case in `counterparty_raw`.
@@ -541,8 +562,8 @@ Named groups recognised: `amount`, `dir`, `last4`, `channel`, `ref`, `cp`, `date
 - AC-014-4 Golden set still passes (normalisation is part of its expected output).
 
 **Tasks**
-- [ ] `Normaliser` + unit tests
-- [ ] Date parser with format list
+- [x] `Normaliser` + unit tests
+- [x] Date parser with format list
 
 ---
 
@@ -558,7 +579,8 @@ Named groups recognised: `amount`, `dir`, `last4`, `channel`, `ref`, `cp`, `date
 - R-015-3 Messages are processed in `received_at` order, oldest first, in batches of 100.
 - R-015-4 Each message is processed in **its own DB transaction**. A failure in one marks it `ERROR` with the exception class in `ignore_reason` and moves on.
 - R-015-5 `TRANSACTION` + template match → `parsed_record` → status `PARSED` → publish `RecordParsed(parsedRecordId)`.
-- R-015-6 `TRANSACTION` + no template, or class `UNKNOWN` with an amount pattern → status `PARSED` is **not** set; a review item `UNPARSED` is created (until SPEC-062 adds LLM fallback).
+- R-015-6 `TRANSACTION` or `INVESTMENT_CONFIRMATION` + no template, or class `UNKNOWN` with an amount pattern → status `PARSED` is **not** set; a review item `UNPARSED` is created (until SPEC-062 adds LLM fallback).
+- R-015-8 `INVESTMENT_CONFIRMATION` + template match → `parsed_record` with `record_type=INVESTMENT_CONFIRMATION`, status `PARSED`, publish `RecordParsed`; the matcher skips it (R-031-8) and SPEC-046 consumes it.
 - R-015-7 `reprocess(rawMessageId)` and `reprocessAll()` exist for rebuilds (SPEC-034) and clear derived rows for those messages first.
 
 **Acceptance criteria**
@@ -593,7 +615,7 @@ record RawEmail(String id, String from, String subject, String textBody, Instant
 ```
 
 **Rules**
-- R-020-1 Only emails from configured bank sender addresses (`settings: mail.fromAllowlist`, new key) are fetched.
+- R-020-1 Only emails from configured sender addresses (`settings: mail.fromAllowlist`, new key) are fetched. Default `["*"]` (all senders) until bank and fund-house addresses are pinned (Q-3, Q-8); classification then decides what is a transaction, an allotment or noise.
 - R-020-2 HTML bodies are converted to plain text before storage (keep line breaks; drop scripts/styles/images).
 - R-020-3 Stored as `raw_message` with `source=EMAIL`, `id` per §4.2, `sender` = from address, `body` = `subject + "\n\n" + textBody`.
 - R-020-4 `fetchSince` start = last successful fetch time minus 1 day overlap (duplicates are harmless due to IDs). First run = now − `backfill.days`.
@@ -619,18 +641,24 @@ record RawEmail(String id, String from, String subject, String textBody, Instant
 
 **Depends on:** 015
 
-**Data** — `V5__accounts_merchants.sql`: `account`, `merchant`, `merchant_alias` (HLD §4.7). Unique `(bank, last4)` on account; unique `raw_name_normalised` on alias.
+**Data** — `V6__accounts_merchants.sql` (placeholder number, see §2.4): `account`, `account_alias`, `merchant`, `merchant_alias` (HLD §4.7). Unique `(bank, last4)` on account; `account_alias(id, account_id, bank, last4, kind TEXT CHECK (kind IN ('DEBIT_CARD','CREDIT_CARD','OTHER')))` with unique `(bank, last4)` and a check that an alias `(bank, last4)` is not also an account's own `(bank, last4)`; unique `raw_name_normalised` on merchant alias.
 
 **Rules**
-- R-030-1 Unknown `(bank, last4)` → account auto-created with `type` guessed from template bank (`SBI_CARD` → `CREDIT_CARD`, else `SAVINGS`) and `nickname = bank + " ••" + last4`.
+- R-030-1 Unknown `(bank, last4)` → account auto-created with `type` = the matching template's `accountType` (`SAVINGS` or `CREDIT_CARD`) and `nickname = bank + " ••" + last4` (cards: `bank + " card ••" + last4`).
 - R-030-2 Alias normalisation: uppercase, remove `*`, digits runs ≥ 4, and common suffixes (`PVT LTD`, `LIMITED`, `INDIA`, `BLR`, city codes list), collapse spaces.
 - R-030-3 Unknown normalised alias → new merchant with `type`: `PERSON` if the raw string looks like a personal UPI ID or a name of 2–3 words with no business keywords; else `MERCHANT`.
 - R-030-4 Merchants can be merged (`mergeMerchants(from, into)`): aliases move, transactions repoint.
+- R-030-5 **Card aliases** (Q-9): a debit card's last 4 can be registered as an alias of a savings account. Resolution order for `(bank, last4)`: account's own last4 → `account_alias` → otherwise auto-create (R-030-1).
+- R-030-6 Merging an account into another (`mergeAccounts(from, into)`, e.g. an auto-created "Axis ••8820" into "Axis ••7311") moves its transactions, turns `from`'s last4 into an alias of `into`, and deletes `from`. Written as a `user_override`/audit entry so it survives rebuilds.
+- R-030-7 API (user auth): `GET /api/v1/accounts`, `PATCH /api/v1/accounts/{id}` (nickname), `POST /api/v1/accounts/{id}/aliases` `{last4, kind}`, `DELETE /api/v1/accounts/{id}/aliases/{aliasId}`, `POST /api/v1/accounts/{id}/merge-into/{targetId}`.
 
 **Acceptance criteria**
 - AC-030-1 `SWIGGY*BLR` and `Swiggy Ltd` resolve to the same merchant.
 - AC-030-2 `rahul.k@okaxis` → `PERSON`.
 - AC-030-3 Merge moves aliases and transactions; the old merchant is deleted.
+- AC-030-4 With alias `8820 → Axis ••7311`, an Axis AutoPay email for card XX8820 resolves to the savings account; no new account is created.
+- AC-030-5 Merging auto-created "Axis ••8820" into "Axis ••7311" moves its transactions, creates the alias, deletes the old account; after rebuild the result is the same.
+- AC-030-6 Adding alias `7311` to another account when an account already owns `7311` → 400 `ALIAS_CONFLICT`.
 
 **Tasks**
 - [ ] Migration
@@ -644,7 +672,7 @@ record RawEmail(String id, String from, String subject, String textBody, Instant
 
 **Depends on:** 030
 
-**Data** — `V6__transactions.sql`: `transaction`, `transaction_evidence` (HLD §4.7) plus:
+**Data** — `V7__transactions.sql`: `transaction`, `transaction_evidence` (HLD §4.7) plus:
 ```sql
 CREATE UNIQUE INDEX ux_txn_ref_dir ON transaction(ref_no, direction)
   WHERE ref_no IS NOT NULL AND status <> 'HIDDEN';
@@ -663,6 +691,7 @@ CREATE UNIQUE INDEX ux_evidence_record ON transaction_evidence(parsed_record_id)
 - R-031-5 When later evidence adds a `refNo` that makes another `PENDING` transaction's open `AMBIGUOUS_MATCH` resolvable, that review item is `AUTO_CLOSED` and the pair is merged.
 - R-031-6 New transactions start `kind=SPEND` for `DR`, `INCOME` for `CR`; SPEC-032 may change it. Publish `TransactionCreated` / `TransactionUpdated`.
 - R-031-7 Whole match step for one record runs in one DB transaction; unique-index violation → retry once as a ref match.
+- R-031-8 Records with `record_type=INVESTMENT_CONFIRMATION` (fund-house allotments) are **never** turned into transactions or used as window/ref candidates (HLD D-24); they go to SPEC-046.
 
 **Acceptance criteria**
 - AC-031-1 SMS with ref R, then email with ref R → 1 transaction, 2 evidence rows.
@@ -687,17 +716,18 @@ CREATE UNIQUE INDEX ux_evidence_record ON transaction_evidence(parsed_record_id)
 **Depends on:** 031
 
 **Rules**
-- R-032-1 **CC payment:** a `DR` on a savings account and a `CR` on a credit-card account, same amount, within 72 h, where either text mentions the card/biller (`card`, `SBI Card`, `CC payment`, `BillDesk`, card last4) → both `kind=CC_PAYMENT`, linked via `linked_txn_id`.
+- R-032-1 **CC payment:** a `DR` on a savings account and a `CR` on a credit-card account, same amount, within 72 h, where either text mentions the card/biller (`card`, `credit card`, `CC payment`, `BillDesk`, card last4) → both `kind=CC_PAYMENT`, linked via `linked_txn_id`.
 - R-032-2 **Own transfer:** `DR` on one own savings account + `CR` on another own savings account, same amount, within 24 h → both `TRANSFER`.
 - R-032-3 **Reversal:** a `CR` with the same `refNo` as an earlier `DR` (or text says *reversed/reversal/refund of failed*) → both `REVERSAL`, `status=HIDDEN`.
 - R-032-4 **Refund:** `CR` from a merchant that has an earlier `DR` (any amount ≤ original) within 60 days, text contains *refund* → `REFUND`, linked to the most recent such `DR`.
 - R-032-5 Any rule that matches more than one candidate → review `UNKNOWN_KIND`; no automatic change.
 - R-032-6 User-set kind (override) is never changed by these rules.
+- R-032-7 `INVESTMENT` is set only by SPEC-046 (instalment match or your review answer); these rules never set or clear it.
 
-**Data** — `V7__txn_links.sql`: `ALTER TABLE transaction ADD COLUMN linked_txn_id UUID REFERENCES transaction(id);`
+**Data** — `V8__txn_links.sql`: `ALTER TABLE transaction ADD COLUMN linked_txn_id UUID REFERENCES transaction(id);`
 
 **Acceptance criteria**
-- AC-032-1 SBI debit ₹12,000 "SBI Card payment" + SBI Card credit ₹12,000 next day → both `CC_PAYMENT`, excluded from spend.
+- AC-032-1 SBI debit ₹12,000 "Axis credit card payment" + Axis card "Payment of INR 12000 has been received" next day → both `CC_PAYMENT`, excluded from spend.
 - AC-032-2 Axis → SBI ₹5,000 same day → both `TRANSFER`.
 - AC-032-3 UPI DR ₹250 ref R, then CR ₹250 ref R → both `REVERSAL` + `HIDDEN`.
 - AC-032-4 Two possible CC-payment partners → `UNKNOWN_KIND` review, kinds unchanged.
@@ -715,7 +745,7 @@ CREATE UNIQUE INDEX ux_evidence_record ON transaction_evidence(parsed_record_id)
 
 **Depends on:** 031
 
-**Data** — `V8__review.sql`: `review_item` (HLD §4.7) with `transaction_id` nullable, `raw_message_id` nullable, `dedup_key TEXT UNIQUE` (so the same question is never opened twice).
+**Data** — `V9__review.sql`: `review_item` (HLD §4.7) with `transaction_id` nullable, `raw_message_id` nullable, `dedup_key TEXT UNIQUE` (so the same question is never opened twice).
 
 **Payload shapes**
 
@@ -728,6 +758,8 @@ CREATE UNIQUE INDEX ux_evidence_record ON transaction_evidence(parsed_record_id)
 | `UNKNOWN_KIND` | `{transactionId, candidates[]}` | `{kind, linkTo?}` |
 | `BALANCE_GAP` | `{accountId, from, to, expectedPaise, actualPaise}` | `{action:"ACK"}` or `{action:"ADD_MANUAL", fields}` |
 | `ORPHAN_OVERRIDE` | `{overrideId}` | `{action:"DROP"}` or `{action:"REAPPLY", transactionId}` |
+| `INSTALMENT_AMBIGUOUS` | `{transactionId?, rawMessageId?, candidateInstalmentIds[]}` | `{instalmentId}` or `{action:"NONE"}` |
+| `SIP_SCHEDULE_SUGGESTION` | `{transactionId?, rawMessageId?, suggestion:{name, type, amountPaise, accountId?, scheduleDay}}` | `{action:"CREATE_SCHEDULE", investment:{…}}`, `{action:"LINK", investmentId}` or `{action:"NOT_INVESTMENT"}` |
 
 **API**
 - `GET /api/v1/review?status=OPEN&type=` → list (newest first).
@@ -761,11 +793,11 @@ CREATE UNIQUE INDEX ux_evidence_record ON transaction_evidence(parsed_record_id)
 
 **Depends on:** 031, 033
 
-**Data** — `V9__overrides_audit.sql`: `user_override` (HLD §4.7) and `audit_log(id, at, actor, entity, entity_id, action, before JSONB, after JSONB)`.
+**Data** — `V10__overrides_audit.sql`: `user_override` (HLD §4.7) and `audit_log(id, at, actor, entity, entity_id, action, before JSONB, after JSONB)`.
 
 **Rules**
 - R-034-1 An override is anchored to the **earliest raw message** among the transaction's evidence (`anchor_raw_message_id`), plus `field`, `value`, `created_at`.
-- R-034-2 Override fields: `CATEGORY`, `KIND`, `NOTE`, `HIDE`, `MERGE_WITH` (other anchor), `SPLIT` (parts), `MANUAL_FIELDS`.
+- R-034-2 Override fields: `CATEGORY`, `KIND`, `NOTE`, `HIDE`, `MERGE_WITH` (other anchor), `SPLIT` (parts), `MANUAL_FIELDS`, `INSTALMENT_STATUS`. An `INSTALMENT_STATUS` override is anchored by `instalment_key = <investmentId>:<dueDate>` instead of a raw message (SPEC-045).
 - R-034-3 `rebuild()`: take the processing lock → delete `transaction_evidence`, `transaction`, `parsed_record`, open non-user review items → reprocess all raw messages oldest-first → apply overrides in `created_at` order.
 - R-034-4 Override whose anchor no longer maps to a transaction after rebuild → review `ORPHAN_OVERRIDE`.
 - R-034-5 Every user change writes `audit_log`.
@@ -814,7 +846,7 @@ CREATE UNIQUE INDEX ux_evidence_record ON transaction_evidence(parsed_record_id)
 
 **Depends on:** 020, 033 (and 035 when done)
 
-**Data** — `V10__scan_run.sql`: `scan_run` (HLD §4.7) + `trigger TEXT` (`CRON|MANUAL|STARTUP`).
+**Data** — `V11__scan_run.sql`: `scan_run` (HLD §4.7) + `trigger TEXT` (`CRON|MANUAL|STARTUP`).
 
 **API**
 - `GET /api/v1/scan-runs/latest`, `GET /api/v1/scan-runs?cursor=`
@@ -824,8 +856,8 @@ CREATE UNIQUE INDEX ux_evidence_record ON transaction_evidence(parsed_record_id)
 - R-036-1 Server cron = `scan.cron` shifted by `scan.serverDelayMinutes`, in `scan.zone`. Re-registered on `SettingsChanged(scan.*)` without restart.
 - R-036-2 Steps: mail fetch → `processPending()` → balance check → build report → push. Each step's failure is recorded; later steps still run where possible.
 - R-036-3 Only one scan at a time (same advisory lock family).
-- R-036-4 Report = counts (new SMS, new emails, transactions created/merged, review opened, errors), spend for the day, and open review count.
-- R-036-5 Push via FCM to every non-revoked device with an `fcm_token`: title "Hishaab daily scan", body e.g. "12 new · ₹3,420 spent · 2 need review". No merchant names in the push text.
+- R-036-4 Report = counts (new SMS, new emails, transactions created/merged, review opened, errors), spend for the day, open review count, and **investments**: instalments confirmed in the run (count + Σ), due in the next 7 days (count + Σ), and missed (newly missed in the run + open missed count).
+- R-036-5 Push via FCM to every non-revoked device with an `fcm_token`: title "Hishaab daily scan", body e.g. "12 new · ₹3,420 spent · 1 SIP confirmed · 2 need review" (add "· 1 SIP missed" when any). No merchant or fund names in the push text.
 - R-036-6 A scan with `errors > 0` or a failed step also sends a push "Scan had problems — open Sync status".
 
 **Acceptance criteria**
@@ -833,6 +865,7 @@ CREATE UNIQUE INDEX ux_evidence_record ON transaction_evidence(parsed_record_id)
 - AC-036-2 A run with a mail failure still processes SMS and records `status=PARTIAL`.
 - AC-036-3 Report numbers match DB counts for the run window.
 - AC-036-4 Push sender is called once per device with the expected text (FCM mocked).
+- AC-036-5 With one instalment confirmed in the run, one due in 3 days and one newly missed, the report shows confirmed 1, upcoming 1, missed 1 with the right sums.
 
 **Tasks**
 - [ ] Migration
@@ -911,7 +944,7 @@ Response:
 
 Response:
 ```json
-{ "spentPaise": 342000, "receivedPaise": 5000000, "refundsPaise": 12000,
+{ "spentPaise": 342000, "receivedPaise": 5000000, "refundsPaise": 12000, "investedPaise": 300000,
   "pendingPaise": 124000, "pendingCount": 2,
   "groups": [ { "key": "...", "label": "Food", "spentPaise": 81200, "count": 23 } ],
   "lastSyncAt": "...", "lastScanAt": "...", "openReviewCount": 3 }
@@ -920,12 +953,13 @@ Response:
 **Rules (the definition of "spend")**
 - R-041-1 `spentPaise` = Σ `DR` where `kind=SPEND` and `status=CONFIRMED`, **minus** Σ `REFUND` (`CR`) linked to those.
 - R-041-2 `receivedPaise` = Σ `CR` where `kind=INCOME` and `status=CONFIRMED`.
-- R-041-3 `TRANSFER`, `CC_PAYMENT`, `REVERSAL`, `HIDDEN` never count.
+- R-041-3 `TRANSFER`, `CC_PAYMENT`, `REVERSAL`, `INVESTMENT`, `HIDDEN` never count in spend or received.
+- R-041-6 `investedPaise` = Σ over instalments with status `CONFIRMED` or `MARKED_PAID` and `due_date` in the period (amount = the linked bank-debit transaction's amount if any, else `expected_paise`), plus `CONFIRMED` `INVESTMENT` transactions not linked to any instalment. Never part of `spentPaise`.
 - R-041-4 `pendingPaise` = Σ amount of `PENDING` (shown separately, never in totals).
 - R-041-5 Chat (SPEC-070) must call this service, not recompute.
 
 **Acceptance criteria**
-- AC-041-1 Fixture month with spends, a refund, a CC payment, a transfer, a reversal and a pending → totals equal hand-computed values in the test.
+- AC-041-1 Fixture month with spends, a refund, a CC payment, a transfer, a reversal, a pending and two SIP instalments (one with a bank debit, one only fund-house confirmed) → totals equal hand-computed values in the test; SIPs appear only in `investedPaise`.
 - AC-041-2 Group totals add up to `spentPaise`.
 
 **Tasks**
@@ -1014,6 +1048,167 @@ Food (Groceries, Eating out, Delivery), Transport (Fuel, Cab, Public), Shopping,
 **Tasks**
 - [ ] Add springdoc
 - [ ] Export step + drift check
+
+---
+
+### SPEC-045 — Investments & schedules
+
+**Goal:** You record your investments (SIP, recurring deposit, FD/locked funds, PPF, other); the system generates the expected instalments from each schedule and lets you set any instalment's status by hand. HLD §4.13, D-24.
+
+**Depends on:** 030 (accounts), 034 (overrides)
+
+**Data** — `V12__investments.sql`
+```sql
+CREATE TABLE investment (
+  id            UUID PRIMARY KEY,
+  name          TEXT NOT NULL,
+  type          TEXT NOT NULL CHECK (type IN ('SIP','RD','FD','PPF','OTHER')),
+  amount_paise  BIGINT NOT NULL CHECK (amount_paise > 0),
+  account_id    UUID REFERENCES account(id),          -- null = any/unknown account
+  frequency     TEXT NOT NULL CHECK (frequency IN ('MONTHLY','QUARTERLY','YEARLY','EVERY_N_DAYS','EVERY_N_MONTHS','ONE_TIME')),
+  interval_n    INT CHECK (interval_n BETWEEN 1 AND 3650),
+  schedule_day  INT CHECK (schedule_day BETWEEN 1 AND 31),
+  start_date    DATE NOT NULL,
+  end_date      DATE,
+  maturity_date DATE,                                  -- lock-in / maturity, informational
+  match_text    TEXT[] NOT NULL DEFAULT '{}',          -- folio, scheme, mandate words (SPEC-046)
+  grace_days    INT NOT NULL DEFAULT 3 CHECK (grace_days BETWEEN 0 AND 30),
+  active        BOOLEAN NOT NULL DEFAULT true,
+  created_at    TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at    TIMESTAMPTZ NOT NULL DEFAULT now(),
+  CHECK (end_date IS NULL OR end_date >= start_date)
+);
+CREATE TABLE instalment (
+  id             UUID PRIMARY KEY,
+  investment_id  UUID NOT NULL REFERENCES investment(id),
+  due_date       DATE NOT NULL,
+  expected_paise BIGINT NOT NULL CHECK (expected_paise > 0),
+  status         TEXT NOT NULL DEFAULT 'SCHEDULED'
+                 CHECK (status IN ('SCHEDULED','CONFIRMED','MARKED_PAID','MISSED','SKIPPED','FAILED')),
+  status_source  TEXT NOT NULL DEFAULT 'AUTO' CHECK (status_source IN ('AUTO','USER')),
+  note           TEXT,
+  updated_at     TIMESTAMPTZ NOT NULL DEFAULT now(),
+  UNIQUE (investment_id, due_date)
+);
+ALTER TABLE user_override ADD COLUMN instalment_key TEXT;              -- '<investmentId>:<yyyy-MM-dd>'
+ALTER TABLE user_override ALTER COLUMN anchor_raw_message_id DROP NOT NULL;
+ALTER TABLE user_override ADD CONSTRAINT user_override_one_anchor
+  CHECK (num_nonnulls(anchor_raw_message_id, instalment_key) = 1);
+```
+Settings (SPEC-001 keys): `investments.horizonDays` = `45`.
+
+**API** (user auth)
+- `POST /api/v1/investments` → 201 `{investment, nextDueDates[6]}`
+- `POST /api/v1/investments/preview` (same body) → `{nextDueDates[6]}` — for the Add form, stores nothing
+- `GET /api/v1/investments?active=` → list with `nextDueDate`, `lastStatus`
+- `GET /api/v1/investments/{id}`, `PATCH /api/v1/investments/{id}` (partial)
+- `DELETE /api/v1/investments/{id}` → deactivates (`active=false`); history kept
+- `GET /api/v1/investments/{id}/instalments?from&to`
+- `GET /api/v1/instalments?status=&from=&to=` (status multi) — used for "upcoming" and "missed" lists
+- `PATCH /api/v1/instalments/{id}` `{status?, note?}` or `{revert:true}` (undo your manual status)
+
+**Rules**
+- R-045-1 Validation: amount > 0 paise. `MONTHLY`, `QUARTERLY`, `YEARLY`, `EVERY_N_MONTHS` use `schedule_day` (default = day of `start_date`). `EVERY_N_DAYS` and `EVERY_N_MONTHS` need `interval_n ≥ 1`. `ONE_TIME` ignores day and interval and must have no `end_date`. Violations → 400 `INVALID_SCHEDULE`.
+- R-045-2 Due dates:
+  - Month-based (`MONTHLY` = every 1 month, `QUARTERLY` = 3, `YEARLY` = 12, `EVERY_N_MONTHS` = n): periods start at `start_date`'s month; the date in each period is `min(schedule_day, last day of that month)` — so 29–31 fall on the last day of shorter months (Feb → 28/29).
+  - `EVERY_N_DAYS`: `start_date + k·n` days.
+  - `ONE_TIME`: exactly `start_date`.
+  - The first instalment is the first generated date **≥ `start_date`**; `end_date` is inclusive.
+- R-045-3 Instalments are stored for due dates up to `today + investments.horizonDays`, refreshed by the daily scan (SPEC-036) and right after any investment change. `expected_paise` = the investment amount when the instalment is generated.
+- R-045-4 Editing schedule fields regenerates only instalments with `due_date ≥ today`, `status=SCHEDULED` and `status_source=AUTO`. Past instalments and anything you set keep their values.
+- R-045-5 Deactivating stops generation and deletes future `SCHEDULED`/`AUTO` instalments; everything else is kept.
+- R-045-6 Manual status: `PATCH /instalments/{id}` sets `status` (any of the six) and `status_source=USER`, and writes a `user_override` (`field=INSTALMENT_STATUS`, `instalment_key`, `value={status, note}`) plus `audit_log`. `{revert:true}` deletes that override and sets `status_source=AUTO`; the automatic status is then recomputed (R-045-7, SPEC-046).
+- R-045-7 Missed by date: an instalment with `status=SCHEDULED`, `status_source=AUTO` and `today > due_date + grace_days` (IST) becomes `MISSED`. Evaluated by the daily scan and after generation.
+- R-045-8 Rebuild (R-034-3) regenerates instalments from investments, then reapplies `INSTALMENT_STATUS` overrides by key. An override whose key no longer exists (schedule changed) → review `ORPHAN_OVERRIDE`.
+- R-045-9 `maturity_date` is informational (shown in the UI); it does not create instalments.
+- R-045-10 **Your schedule is the source of truth for instalments** (Q-7): instalments are generated from the schedule whether or not any SMS/email ever arrives, and you can mark any instalment `MARKED_PAID` (or any other status) at any time. This is how SIPs whose bank debit has no template yet are recorded; matching (SPEC-046) only adds automatic confirmation on top.
+
+**Acceptance criteria**
+- AC-045-1 Monthly, day 31, start 2027-01-15 → 2027-01-31, 2027-02-28, 2027-03-31, 2027-04-30; and 2028-02-29 in a leap year.
+- AC-045-2 Quarterly, day 5, start 2026-11-05 → 2026-11-05, 2027-02-05, 2027-05-05.
+- AC-045-3 Every 45 days from 2026-01-01 → 2026-01-01, 2026-02-15, 2026-04-01.
+- AC-045-4 Every 2 months, day 10, start 2026-01-20 → first instalment 2026-03-10.
+- AC-045-5 One-time → exactly one instalment, on `start_date`.
+- AC-045-6 Monthly, day 5, end 2027-03-05 → last instalment 2027-03-05.
+- AC-045-7 Amount changed 1,000 → 1,500 on 2026-11-18: instalments before today keep 1,000; future AUTO ones become 1,500; a future one you marked `SKIPPED` is untouched.
+- AC-045-8 Mark an instalment `MARKED_PAID` → rebuild → still `MARKED_PAID` with `status_source=USER`; `revert` → back to the automatic status.
+- AC-045-9 Due 2026-11-05, grace 3: on 2026-11-08 → `SCHEDULED`; on 2026-11-09 → `MISSED`.
+- AC-045-10 `EVERY_N_DAYS` without `interval_n` → 400 `INVALID_SCHEDULE`.
+- AC-045-11 A SIP with no messages at all: instalments are still generated each month; marking one `MARKED_PAID` counts it in `investedPaise` (R-041-6); without marking, it becomes `MISSED` after the grace days.
+
+**Tests:** `ScheduleGeneratorTest` (pure, table-driven), `InvestmentIT`, `InstalmentOverrideIT`.
+
+**Out of scope:** NAV, units, valuation, returns, tax; creating schedules from messages (SPEC-046 only *suggests*).
+
+**Tasks**
+- [ ] Migration
+- [ ] `ScheduleGenerator` (pure) + tests
+- [ ] Investment service + instalment materialiser
+- [ ] Manual status + override + revert
+- [ ] Controllers
+
+---
+
+### SPEC-046 — Instalment matching & lifecycle
+
+**Goal:** Confirm or fail instalments automatically from bank debits and fund-house messages, keep investments out of spend, and never guess. HLD §4.13, D-24.
+
+**Depends on:** 045, 031, 032, 033
+
+**Data** — `V13__instalment_matching.sql`
+```sql
+CREATE TABLE instalment_evidence (
+  id               UUID PRIMARY KEY,
+  instalment_id    UUID NOT NULL REFERENCES instalment(id),
+  kind             TEXT NOT NULL CHECK (kind IN ('BANK_DEBIT','AMC_CONFIRMATION','FAILED_DEBIT')),
+  transaction_id   UUID REFERENCES transaction(id),
+  parsed_record_id UUID REFERENCES parsed_record(id),
+  raw_message_id   TEXT REFERENCES raw_message(id),
+  created_at       TIMESTAMPTZ NOT NULL DEFAULT now(),
+  CHECK (num_nonnulls(transaction_id, raw_message_id) >= 1)
+);
+-- A transaction or message proves at most one instalment.
+CREATE UNIQUE INDEX ux_inst_ev_txn ON instalment_evidence(transaction_id) WHERE transaction_id IS NOT NULL;
+CREATE UNIQUE INDEX ux_inst_ev_raw ON instalment_evidence(raw_message_id) WHERE raw_message_id IS NOT NULL;
+```
+Settings (SPEC-001 keys): `investments.windowDaysBefore` = `2`, `investments.windowDaysAfter` = `5`, `investments.amcTolerancePpm` = `100` (0.01%), `investments.sipHints` = `["SIP","NACH","ACH","MUTUAL FUND","FOLIO","BSE STAR","CAMS","KFIN","ICCL"]`.
+
+**Rules**
+- R-046-1 Inputs: `TransactionCreated`/`TransactionUpdated` for `DR` transactions (→ `BANK_DEBIT`); `RecordParsed` with `record_type=INVESTMENT_CONFIRMATION` (→ `AMC_CONFIRMATION`); raw messages classified `FAILED_TXN` with a currency amount (→ `FAILED_DEBIT`).
+- R-046-2 Candidates: instalments of **active** investments with `status_source=AUTO`, status `SCHEDULED`, `MISSED` or `FAILED`, no evidence of the same kind yet, and message date `d` (IST date of `txn_time`) within `[due_date − windowDaysBefore, due_date + windowDaysAfter]`.
+- R-046-3 Amount: `BANK_DEBIT` / `FAILED_DEBIT` → exactly `expected_paise`. `AMC_CONFIRMATION` → `0 ≤ expected_paise − amount ≤ max(1, ceil(expected_paise × amcTolerancePpm / 1 000 000))` (stamp duty: ₹1,000 → ₹999.95).
+- R-046-4 Account: when both the investment and the transaction have an account, they must be equal. Fund-house messages carry no account; skip the check.
+- R-046-5 Text: when the investment has `match_text`, at least one entry must occur in the message text (case-insensitive, whitespace collapsed; folio compared on digits only). Empty `match_text` → no text check.
+- R-046-6 Decision: **exactly 1** candidate → add `instalment_evidence`; `BANK_DEBIT`/`AMC_CONFIRMATION` → `CONFIRMED`, `FAILED_DEBIT` → `FAILED`; a `BANK_DEBIT` transaction gets `kind=INVESTMENT` (unless you overrode its kind). **2 or more** → review `INSTALMENT_AMBIGUOUS` (dedup key = source id), nothing changes, and a bank-debit transaction is set `PENDING` until answered.
+- R-046-7 **0 candidates, bank debit that looks like an investment** (text contains any `investments.sipHints` entry, word-boundary, case-insensitive) → transaction `PENDING` + review `SIP_SCHEDULE_SUGGESTION` with a suggested schedule (amount, account, day of month, counterparty as name, type `SIP`). Answers: `CREATE_SCHEDULE` → creates the investment (SPEC-045) and re-runs matching; `LINK` → match to that investment's instalment in the window; `NOT_INVESTMENT` → `kind=SPEND`, `CONFIRMED`, stored as a `KIND` override.
+- R-046-8 0 candidates for a fund-house allotment → review `SIP_SCHEDULE_SUGGESTION` (message-based). Never creates a transaction (R-031-8). 0 candidates for a failed debit → nothing.
+- R-046-9 Late evidence: an instalment confirmed by an allotment can still get its `BANK_DEBIT` (the transaction becomes `INVESTMENT`; status stays `CONFIRMED`). A `MISSED` or `FAILED` instalment that later matches a debit/allotment → `CONFIRMED`.
+- R-046-10 A `USER` status is never changed by these rules. Evidence may still be attached so you can see it.
+- R-046-11 `instalment_evidence` and every `AUTO` status are derived: rebuild (R-034-3) clears and re-runs them; `INSTALMENT_STATUS` overrides are reapplied.
+
+**Acceptance criteria**
+- AC-046-1 SIP ₹1,000 day 5 on SBI; SBI debit ₹1,000 on 05-11 with fund-house text → instalment `CONFIRMED`, transaction `kind=INVESTMENT`; `spentPaise` unchanged, `investedPaise` +1,000.
+- AC-046-2 Fund-house allotment Rs.999.95 dated 05-11 for that SIP (folio in `match_text`) → `CONFIRMED`; no transaction created.
+- AC-046-3 Both arrive → one instalment, two evidence rows, one transaction.
+- AC-046-4 Two SIPs of ₹1,000 due the same day, no `match_text` → a matching bank debit opens `INSTALMENT_AMBIGUOUS`; both stay `SCHEDULED`; the transaction is `PENDING`.
+- AC-046-5 Same two SIPs with folios in `match_text` → each allotment confirms its own SIP.
+- AC-046-6 "NACH … MUTUAL FUND" debit ₹2,500 with no schedule → `PENDING` + `SIP_SCHEDULE_SUGGESTION`; answering `CREATE_SCHEDULE` → investment created, instalment `CONFIRMED`, transaction `INVESTMENT` + `CONFIRMED`.
+- AC-046-7 Failed-debit message for the SIP amount inside the window → `FAILED`; a successful debit two days later → `CONFIRMED`.
+- AC-046-8 You set `SKIPPED`; a matching debit arrives → status stays `SKIPPED` (USER); evidence attached.
+- AC-046-9 Allotment Rs.999.00 for a ₹1,000 SIP (outside tolerance) → not matched → `SIP_SCHEDULE_SUGGESTION`.
+- AC-046-10 Rebuild → identical instalment statuses and evidence.
+- AC-046-11 Summary for a month with ₹3,000 of SIPs and ₹5,000 of spend → `spentPaise` 5,000, `investedPaise` 3,000.
+
+**Tests:** `InstalmentMatcherTest` (pure decision function), `InstalmentMatchingIT` (scenarios AC-046-1..11).
+
+**Out of scope:** bank-side SIP debit templates until a sample exists (Q-7); NAV/units tracking.
+
+**Tasks**
+- [ ] Migration + settings keys
+- [ ] Matcher (pure) + persistence wrapper + listeners
+- [ ] Review handlers for `INSTALMENT_AMBIGUOUS` and `SIP_SCHEDULE_SUGGESTION`
+- [ ] Summary (`investedPaise`) and report lines (SPEC-041, SPEC-036)
+- [ ] Scenario tests
 
 ---
 
@@ -1265,6 +1460,21 @@ record LlmResult<T>(T value, double confidence, String model, long latencyMs, lo
 | 2026-11-17 | 012 | R-012-4 implemented as a pure mapping (`Classification.rawStatus()/ignoreReason()`); the DB status update and `MessageClassified` publish happen in the SPEC-015 orchestrator. `FAILED_TXN` also sets `ignore_reason = FAILED_TXN` | R-012-5 keeps the classifier pure; SPEC-015 owns per-message transactions and locking | Claude |
 | 2026-11-17 | 012 | Rule file format: `senders` (middle parts; empty = all), `fragments` (`{{name}}` macros), `classes.<CLASS>[] = {name, all[], none[]}`; text lowercased + whitespace collapsed; bank files are checked before common rules within a class; reason = `<CLASS>:<rule name>`. Only `common.yml` exists until real samples arrive | Spec asked for per-bank YAML; bank-specific patterns without samples would be guesses | Claude |
 | 2026-11-17 | 012 | Rules loaded with Spring `YamlMapFactoryBean` (SnakeYAML is already on the classpath via Boot) | Boot `Binder` can rewrite uppercase/underscore map keys like `MANDATE_REMINDER`; no new dependency | Claude |
+| 2026-11-18 | all | **SBI Card dropped** from v1; banks = Axis (savings + credit card), SBI (savings); fund houses (AMCs) added as an SMS/email source | You don't hold an SBI Card (HLD D-23) | Ayan |
+| 2026-11-18 | 013 | **Golden set is synthetic** (HLD D-25): real samples used only as shape references; every value invented; fund names fictional ("Alpha MF"…) and AMC templates named by shape, so holdings aren't revealed. A test guards against Gmail addresses and non-`example.invalid` links in fixtures | Samples carried names, account numbers, folios, live links | Ayan |
+| 2026-11-18 | 013 | 30% hold-out **dropped**; replaced by the coverage rule: per template ≥ 1 shape fixture + ≥ 2 synthetic variants (enforced by `GoldenSetTest`), and every non-template shape is a fixture expecting no template | Sample counts per shape were 1–4; variants test the same robustness | Ayan |
+| 2026-11-18 | 012 | New class `INVESTMENT_CONFIRMATION` (fund-house allotment), checked right after OTP; `processed`, `withdrawal`, "transaction has been done" count as completed actions; amounts also as `(INR) 1000.00` and SBI's currency-less `debited by 28.0`; `not_future` also rejects "being"/"not (be)"; PROMO yields to statements; SIP reminders ("due for debit", "upcoming SIP") and mandate/SIP registrations → `MANDATE_REMINDER` | Learned from the real Axis/SBI/AMC shapes; keeps allotments out of transactions (D-24) | Claude |
+| 2026-11-18 | 013 | Templates: Axis SMS (UPI debit/credit, card debit on savings, credit-card spend, card payment received, account credit with ref text), Axis email (UPI table, account credit, card AutoPay), SBI SMS (UPI debit, credit), SBI email (debit-card cash withdrawal only), 6 fund-house allotment SMS shapes. `senderPattern` is a full-match regex on the SMS middle part (`AXIS[A-Z]{0,4}`, `SBI[A-Z]{0,5}\|[A-Z]{0,4}SBI`, AMC `.*`) or the email address; exact IDs still pending (Q-4, Q-8) | One template per shape; first `find()` that normalises wins | Claude |
+| 2026-11-18 | 013 | Deliberately **no template** (→ ignored or UNPARSED review): FD booked/closed, statements, mandate created, SIP reminders/registrations, SBI debit-card types other than cash withdrawal, fund-house allotment **emails** (they state no amount; the same allotment arrives by SMS with an amount) | "Don't force a match" | Claude |
+| 2026-11-18 | 013 | `parse_template` keeps every `(id, version)`; startup sets only YAML-listed versions active. Hash covers source, sender pattern, regex, fixed, account/record type and bank. `parsed_record` gets `record_type` and CHECKs for enums, `^[0-9]{4}$` last4 and `^[0-9]{6,22}$` ref | AC-013-3 and DB-level guard rails | Claude |
+| 2026-11-18 | 014 | Dates also accept `dd-MMM-yyyy`, `MMM d, yyyy` (SBI email) and single-digit days (`5Nov26`); combined `datetime` captures split on the trailing time. Channel inference uses word boundaries except `UPI`/`CARD` (substring, to catch `BLOCKUPI`/`BLOCKCARD`); a fixed/captured channel always wins. Direction words also accept `debit`, `credit`, `DR`, `CR`, `refunded` | Seen in samples; `\bATM\b` avoids "TREATMENT" | Claude |
+| 2026-11-18 | 045/046 | Investments split in two specs: 045 (schedules, instalments, manual status; needs 030, 034) and 046 (matching, INVESTMENT kind, reviews; needs 045, 031–033). Only docs now: their dependencies are not built yet | Ship the schedule part without waiting for matching | Claude |
+| 2026-11-18 | 046 | Fund-house allotment amount is net of 0.005% stamp duty → match tolerance `investments.amcTolerancePpm` = 100 (0.01%) below the expected amount, never above; bank debits must match exactly. Unmatched SIP-looking debits stay `PENDING` + review (never silently spend or invested) | Real shapes show ₹999.95 for ₹1,000; H-9 | Claude — **Ayan to confirm** |
+| 2026-11-18 | 046 | Stamp-duty tolerance (≤ 0.01 % below, never above) and "unmatched SIP-looking debit → `PENDING` + review" **confirmed** | | Ayan |
+| 2026-11-18 | 045 | Schedules generate instalments regardless of messages; manual `MARKED_PAID` always available (R-045-10) | Q-7: a SIP must be trackable even with no parsable bank debit | Ayan |
+| 2026-11-18 | 001/011/020 | Sender allowlists open by default: `senders.allowlist = ["*"]` (V5 migration; only replaces the untouched `[]`), `mail.fromAllowlist = ["*"]`. `"*"` is an allowed allowlist entry. **Consequence:** the worker gets `["*"]` from `/device/config`, so it must apply its own bank/fund-house filter or it would upload every SMS (OTPs, personal) | Q-8: fund-house sender IDs unknown; filtering moves to the sync job | Ayan |
+| 2026-11-18 | 030 | Card aliases + account merge (R-030-5..7) | Q-9: debit-card messages carry the card last 4, not the account's | Ayan |
+| 2026-11-18 | all | Migration numbers in unbuilt specs are placeholders; the next free version is used at build time | Specs are built out of numeric order, so fixed numbers collide | Claude |
 | | | | | |
 
 ---
@@ -1273,9 +1483,12 @@ record LlmResult<T>(T value, double confidence, String model, long latencyMs, lo
 
 | # | Question | Blocks | Owner |
 |---|---|---|---|
-| Q-1 | Provide masked sample SMS + emails for Axis, SBI, SBI Card (5–10 each) | SPEC-013 | Ayan |
+| Q-1 | ~~Provide sample SMS + emails~~ — received 2026-11-18 (shape reference only; no SBI Card) | SPEC-013 | Ayan |
 | Q-2 | Gmail API or IMAP (HLD O-02) | SPEC-020 | Ayan |
 | Q-3 | Bank email sender addresses for `mail.fromAllowlist` | SPEC-020 | Ayan |
 | Q-4 | Sender ID middle parts for `senders.allowlist` (from your inbox) | SPEC-011 go-live | Ayan |
 | Q-5 | super.money credit card in scope? | SPEC-030 | Ayan |
 | Q-6 | Subdomain | SPEC-090 | Ayan |
+| Q-7 | ~~Bank-side SIP debit sample~~ — **answered 2026-11-18:** not needed to proceed. Schedules hold regardless of messages and instalments can always be marked paid by hand (R-045-10). A bank-debit template is added when a sample appears | SPEC-046 | Ayan |
+| Q-8 | ~~Fund-house sender IDs / email domains~~ — **answered 2026-11-18:** keep allowlists open (`["*"]`); the sync job filters on its side | SPEC-011, SPEC-020 | Ayan |
+| Q-9 | ~~Card last-4 vs account last-4~~ — **answered 2026-11-18: yes**, card aliases + account merge in SPEC-030 (R-030-5..7) | SPEC-030 | Ayan |

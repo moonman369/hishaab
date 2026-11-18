@@ -1,0 +1,22 @@
+{
+  "input": {
+    "source": "SMS",
+    "sender": "AX-AXISBK-S",
+    "body": "Payment of INR 4965.9 has been received towards your Axis Bank Credit Card XX1187 on 30-10-26 - Axis Bank",
+    "receivedAtMs": 1793357400000
+  },
+  "expected": {
+    "class": "TRANSACTION",
+    "fields": {
+      "amountPaise": 496590,
+      "direction": "CR",
+      "accountLast4": "1187",
+      "channel": "OTHER",
+      "counterpartyRaw": null,
+      "refNo": null,
+      "txnTime": "2026-10-30T16:20:00+05:30",
+      "balanceAfterPaise": null
+    },
+    "templateId": "axis.sms.cc_payment_received"
+  }
+}

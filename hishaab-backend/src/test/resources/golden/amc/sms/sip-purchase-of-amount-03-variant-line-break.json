@@ -1,0 +1,22 @@
+{
+  "input": {
+    "source": "SMS",
+    "sender": "VK-GAMMMF-S",
+    "body": "Dear Investor, Your SIP Purchase of Rs. 1499.93 in Folio 55500099 in Gamma Value\nFund Growth for 9.1 units has been processed for NAV of Rs. 164.8 on 12-NOV-2026 - GAMMF",
+    "receivedAtMs": 1794555000000
+  },
+  "expected": {
+    "class": "INVESTMENT_CONFIRMATION",
+    "fields": {
+      "amountPaise": 149993,
+      "direction": "DR",
+      "accountLast4": null,
+      "channel": "OTHER",
+      "counterpartyRaw": "Gamma Value Fund Growth",
+      "refNo": "55500099",
+      "txnTime": "2026-11-12T13:00:00+05:30",
+      "balanceAfterPaise": null
+    },
+    "templateId": "amc.sms.sip_purchase_of_amount"
+  }
+}

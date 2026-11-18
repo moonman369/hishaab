@@ -1,0 +1,13 @@
+{
+  "input": {
+    "source": "SMS",
+    "sender": "VM-EPSIMF-S",
+    "body": "Dear Investor, Your SIP Installment of Rs. 1000.00 in Scheme EPS Large & Midcap Fund - Reg Gr under the Folio No. 900000111222 is due on 05/11/2026 from STATE BANK OF INDIA, Acc. No. XXXXXXXX4092.Epsilon MF",
+    "receivedAtMs": 1793593800000
+  },
+  "expected": {
+    "class": "MANDATE_REMINDER",
+    "fields": null,
+    "templateId": null
+  }
+}

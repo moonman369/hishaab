@@ -1,0 +1,22 @@
+{
+  "input": {
+    "source": "SMS",
+    "sender": "VK-GAMMMF-S",
+    "body": "Dear Investor, Your SIP Purchase of Rs.4,999.75 in Folio 55500011 in Gamma Bluechip Fund Growth for 49.9 units has been processed for NAV of Rs.100.2 on 05-Nov-2026 - GAMMF",
+    "receivedAtMs": 1793950200000
+  },
+  "expected": {
+    "class": "INVESTMENT_CONFIRMATION",
+    "fields": {
+      "amountPaise": 499975,
+      "direction": "DR",
+      "accountLast4": null,
+      "channel": "OTHER",
+      "counterpartyRaw": "Gamma Bluechip Fund Growth",
+      "refNo": "55500011",
+      "txnTime": "2026-11-05T13:00:00+05:30",
+      "balanceAfterPaise": null
+    },
+    "templateId": "amc.sms.sip_purchase_of_amount"
+  }
+}

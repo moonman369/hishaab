@@ -1,0 +1,13 @@
+{
+  "input": {
+    "source": "SMS",
+    "sender": "AX-AXISBK-S",
+    "body": "Your FD no. X7788 is booked for INR 20000 for a tenure of 12M 0D at 6.50%. Nomination Registered: Y, Auto Renewal: U - Axis Bank",
+    "receivedAtMs": 1793766600000
+  },
+  "expected": {
+    "class": "UNKNOWN",
+    "fields": null,
+    "templateId": null
+  }
+}

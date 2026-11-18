@@ -1,0 +1,13 @@
+{
+  "input": {
+    "source": "SMS",
+    "sender": "AD-DELTMF-S",
+    "body": "The installment amount of Rs.1000 towards your SIP dated 05-11-2026 in Delta Mid Cap Fund-Growth under folio no 41000022 will be debited from your STATE BANK OF INDIA account number / SRN XXXXXXX4092 shortly. For details please contact your Mutual Fund Distributor /Intermediary, if any or call us on 180000000000 - DELTAMF.",
+    "receivedAtMs": 1793680200000
+  },
+  "expected": {
+    "class": "MANDATE_REMINDER",
+    "fields": null,
+    "templateId": null
+  }
+}

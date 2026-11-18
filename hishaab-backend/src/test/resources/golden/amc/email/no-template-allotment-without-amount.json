@@ -1,0 +1,13 @@
+{
+  "input": {
+    "source": "EMAIL",
+    "sender": "alphamf@kfintech.com",
+    "body": "SIP Confirmation: Alpha India Small Cap Fund - Regular Plan - Growth - Folio XXXXXXX1122\n\nDear Investor,\n\nGreetings from Alpha Mutual Fund.\n\nWe wish to inform you that, your SIP instalment dated 05/11/2026 towards Alpha India Small Cap Fund - Regular Plan - Growth is successfully processed, and units are allotted as per the applicable NAV.\n\nPlease find attached the password protected Account Statement with details of the transaction, as confirmation for your records.",
+    "receivedAtMs": 1793931900000
+  },
+  "expected": {
+    "class": "INVESTMENT_CONFIRMATION",
+    "fields": null,
+    "templateId": null
+  }
+}

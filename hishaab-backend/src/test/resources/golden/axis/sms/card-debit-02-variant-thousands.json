@@ -1,0 +1,22 @@
+{
+  "input": {
+    "source": "SMS",
+    "sender": "AX-AXISBK-S",
+    "body": "INR 2,150.00 debited from A/c no. XX207311 on PETROL PUMP 42 03-11-2026 18:02:09 IST. Avl bal: INR 12,004.50. Not you? SMS BLOCKCARD XX8820 to +919000000000 - Axis Bank",
+    "receivedAtMs": 1793709150000
+  },
+  "expected": {
+    "class": "TRANSACTION",
+    "fields": {
+      "amountPaise": 215000,
+      "direction": "DR",
+      "accountLast4": "7311",
+      "channel": "CARD",
+      "counterpartyRaw": "PETROL PUMP 42",
+      "refNo": null,
+      "txnTime": "2026-11-03T18:02:09+05:30",
+      "balanceAfterPaise": 1200450
+    },
+    "templateId": "axis.sms.card_debit"
+  }
+}

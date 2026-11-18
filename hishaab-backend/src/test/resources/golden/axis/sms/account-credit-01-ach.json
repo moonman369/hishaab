@@ -1,0 +1,22 @@
+{
+  "input": {
+    "source": "SMS",
+    "sender": "AX-AXISBK-S",
+    "body": "INR 83116.00 credited to Axis Bank A/c XX7311 on 30-10-26 at 14:34:52 IST. Ref: ACH-CR-SAL-ACMEWIDGETS.View bal: https://example.invalid/b/AbC123",
+    "receivedAtMs": 1793351110000
+  },
+  "expected": {
+    "class": "TRANSACTION",
+    "fields": {
+      "amountPaise": 8311600,
+      "direction": "CR",
+      "accountLast4": "7311",
+      "channel": "OTHER",
+      "counterpartyRaw": "ACH-CR-SAL-ACMEWIDGETS",
+      "refNo": null,
+      "txnTime": "2026-10-30T14:34:52+05:30",
+      "balanceAfterPaise": null
+    },
+    "templateId": "axis.sms.account_credit"
+  }
+}

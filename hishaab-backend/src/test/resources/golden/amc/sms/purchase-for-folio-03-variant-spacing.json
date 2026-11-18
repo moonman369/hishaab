@@ -1,0 +1,22 @@
+{
+  "input": {
+    "source": "SMS",
+    "sender": "JM-BETAMF-S",
+    "body": "Your Purchase of Rs. 499.98 for folio  7000123  in  Beta Flexi Cap Fund-Reg-Growth  is processed at NAV 12.5 - Team Beta MF",
+    "receivedAtMs": 1794375000000
+  },
+  "expected": {
+    "class": "INVESTMENT_CONFIRMATION",
+    "fields": {
+      "amountPaise": 49998,
+      "direction": "DR",
+      "accountLast4": null,
+      "channel": "OTHER",
+      "counterpartyRaw": "Beta Flexi Cap Fund-Reg-Growth",
+      "refNo": "7000123",
+      "txnTime": "2026-11-11T11:00:00+05:30",
+      "balanceAfterPaise": null
+    },
+    "templateId": "amc.sms.purchase_for_folio"
+  }
+}

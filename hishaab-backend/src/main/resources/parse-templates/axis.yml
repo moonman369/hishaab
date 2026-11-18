@@ -1,0 +1,95 @@
+# SPEC-013 parse templates: Axis Bank (savings + credit card), SMS and email.
+# One template per message SHAPE. Regexes are case-insensitive, searched with find(), and use \s+ wherever the bank
+# varies spaces or line breaks. Changing anything here requires a new `version` (AC-013-3).
+# senderPattern: SMS = sender middle part (e.g. AXISBK; exact IDs to be confirmed, SPEC Q-4); EMAIL = from-address.
+templates:
+
+  # "INR 6.00 debited / A/c no. XX1234 / 29-01-26, 14:14:51 / UPI/P2M/<ref>/<merchant>"   (also P2A, credited, " IST")
+  - id: axis.sms.upi
+    version: 1
+    bank: AXIS
+    source: SMS
+    accountType: SAVINGS
+    recordType: TRANSACTION
+    senderPattern: 'AXIS[A-Z]{0,4}'
+    regex: 'INR\s+(?<amount>[\d,]+(?:\.\d{1,2})?)\s+(?<dir>debited|credited)\s+A/c\s+no\.\s+XX(?<last4>\d{4})\s+(?<date>\d{2}-\d{2}-\d{2,4}),\s*(?<time>\d{1,2}:\d{2}(?::\d{2})?)(?:\s+IST)?\s+UPI/P2[AM]/(?<ref>\d{6,22})/(?<cp>[^/\r\n]+)'
+    fixed: { channel: UPI }
+
+  # "INR 553.44 debited from A/c no. XX123456 on <merchant>  12-11-2026 11:35:47 IST. Avl bal: INR 7608.13. ... BLOCKCARD"
+  - id: axis.sms.card_debit
+    version: 1
+    bank: AXIS
+    source: SMS
+    accountType: SAVINGS
+    recordType: TRANSACTION
+    senderPattern: 'AXIS[A-Z]{0,4}'
+    regex: '(?s)INR\s+(?<amount>[\d,]+(?:\.\d{1,2})?)\s+debited\s+from\s+A/c\s+no\.\s+XX\d*(?<last4>\d{4})\s+on\s+(?<cp>[^\r\n]+?)\s+(?<date>\d{2}-\d{2}-\d{4})\s+(?<time>\d{1,2}:\d{2}(?::\d{2})?)\s+IST\.?(?:\s*Avl\s+bal:?\s*INR\s+(?<bal>[\d,]+(?:\.\d{1,2})?))?.*?\bBLOCKCARD\b'
+    fixed: { direction: DR, channel: CARD }
+
+  # "Spent INR 2231.27 / using Axis Bank Credit Card no. XX1234 on 08-11-26 15:49:48 IST at / <merchant>. / Avl limit: ..."
+  - id: axis.sms.cc_spent
+    version: 1
+    bank: AXIS
+    source: SMS
+    accountType: CREDIT_CARD
+    recordType: TRANSACTION
+    senderPattern: 'AXIS[A-Z]{0,4}'
+    regex: 'Spent\s+INR\s+(?<amount>[\d,]+(?:\.\d{1,2})?)\s+using\s+Axis\s+Bank\s+Credit\s+Card\s+no\.\s+XX(?<last4>\d{4})\s+on\s+(?<date>\d{2}-\d{2}-\d{2,4})\s+(?<time>\d{1,2}:\d{2}(?::\d{2})?)\s+IST\s+at\s+(?<cp>[\s\S]+?)\s*Avl\s+limit'
+    fixed: { direction: DR, channel: CARD }
+
+  # "Payment of INR 4965.9 has been received towards your Axis Bank Credit Card XX1234 on 30-10-26 - Axis Bank"
+  - id: axis.sms.cc_payment_received
+    version: 1
+    bank: AXIS
+    source: SMS
+    accountType: CREDIT_CARD
+    recordType: TRANSACTION
+    senderPattern: 'AXIS[A-Z]{0,4}'
+    regex: 'Payment\s+of\s+INR\s+(?<amount>[\d,]+(?:\.\d{1,2})?)\s+has\s+been\s+received\s+towards\s+your\s+Axis\s+Bank\s+Credit\s+Card\s+XX(?<last4>\d{4})\s+on\s+(?<date>\d{2}-\d{2}-\d{2,4})'
+    fixed: { direction: CR, channel: OTHER }
+
+  # "INR 83116.00 credited to Axis Bank A/c XX1234 on 30-10-26 at 14:34:52 IST. Ref: <ref text>.View bal: <link>"
+  - id: axis.sms.account_credit
+    version: 1
+    bank: AXIS
+    source: SMS
+    accountType: SAVINGS
+    recordType: TRANSACTION
+    senderPattern: 'AXIS[A-Z]{0,4}'
+    regex: 'INR\s+(?<amount>[\d,]+(?:\.\d{1,2})?)\s+credited\s+to\s+Axis\s+Bank\s+A/c\s+XX(?<last4>\d{4})\s+on\s+(?<date>\d{2}-\d{2}-\d{2,4})\s+at\s+(?<time>\d{1,2}:\d{2}(?::\d{2})?)\s+IST\.\s*Ref:\s*(?<cp>[A-Za-z0-9/_-]+)'
+    fixed: { direction: CR }
+
+  # Email body table: "Amount Debited: INR 215.00 / Account Number: XX1234 / Date & Time: 15-11-26, 20:43:51 IST /
+  # Transaction Info: UPI/P2M/<ref>/<merchant>"
+  - id: axis.email.upi
+    version: 1
+    bank: AXIS
+    source: EMAIL
+    accountType: SAVINGS
+    recordType: TRANSACTION
+    senderPattern: '.*@axis\.bank\.in|.*@axisbank\.com'
+    regex: 'Amount\s+(?<dir>Debited|Credited):\s*INR\s+(?<amount>[\d,]+(?:\.\d{1,2})?)\s+Account\s+Number:\s*XX(?<last4>\d{4})\s+Date\s*&\s*Time:\s*(?<date>\d{2}-\d{2}-\d{2,4}),\s*(?<time>\d{1,2}:\d{2}(?::\d{2})?)(?:\s*IST)?\s+Transaction\s+Info:\s*UPI/P2[AM]/(?<ref>\d{6,22})/(?<cp>[^/\r\n]+)'
+    fixed: { channel: UPI }
+
+  # "your A/c no. XX1234 has been credited with INR 6513.00 on 04-11-2026 at 09:50:23 IST by <code>/<ref>/..."
+  - id: axis.email.account_credit
+    version: 1
+    bank: AXIS
+    source: EMAIL
+    accountType: SAVINGS
+    recordType: TRANSACTION
+    senderPattern: '.*@axis\.bank\.in|.*@axisbank\.com'
+    regex: 'your\s+A/c\s+no\.\s+XX(?<last4>\d{4})\s+has\s+been\s+credited\s+with\s+INR\s+(?<amount>[\d,]+(?:\.\d{1,2})?)\s+on\s+(?<date>\d{2}-\d{2}-\d{2,4})\s+at\s+(?<time>\d{1,2}:\d{2}(?::\d{2})?)\s+IST\s+by\s+(?<cp>[^/\s]+)(?:/(?<ref>\d{6,22}))?'
+    fixed: { direction: CR }
+
+  # "Auto Pay for e-mandate of INR 2242.94 for <merchant> has been processed on your Axis Bank Card no. XX1234 on
+  # 04-11-2026 at 00:01:16 IST. The transaction ID is <id>."
+  - id: axis.email.card_autopay
+    version: 1
+    bank: AXIS
+    source: EMAIL
+    accountType: SAVINGS
+    recordType: TRANSACTION
+    senderPattern: '.*@axis\.bank\.in|.*@axisbank\.com'
+    regex: 'Auto\s+Pay\s+for\s+e-mandate\s+of\s+INR\s+(?<amount>[\d,]+(?:\.\d{1,2})?)\s+for\s+(?<cp>[\s\S]+?)\s+has\s+been\s+processed\s+on\s+your\s+Axis\s+Bank\s+Card\s+no\.\s+XX(?<last4>\d{4})\s+on\s+(?<date>\d{2}-\d{2}-\d{4})\s+at\s+(?<time>\d{1,2}:\d{2}(?::\d{2})?)\s+IST\.\s*The\s+transaction\s+ID\s+is\s+(?<ref>\d{6,22})'
+    fixed: { direction: DR, channel: AUTOPAY }

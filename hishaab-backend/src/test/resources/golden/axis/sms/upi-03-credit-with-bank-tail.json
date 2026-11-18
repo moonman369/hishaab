@@ -1,0 +1,22 @@
+{
+  "input": {
+    "source": "SMS",
+    "sender": "AX-AXISBK-S",
+    "body": "INR 30000.00 credited\nA/c no. XX7311\n31-07-26, 08:19:40 IST\nUPI/P2A/338120597764/Neha  Ver/SBIN/Paym - Axis Bank",
+    "receivedAtMs": 1785466195000
+  },
+  "expected": {
+    "class": "TRANSACTION",
+    "fields": {
+      "amountPaise": 3000000,
+      "direction": "CR",
+      "accountLast4": "7311",
+      "channel": "UPI",
+      "counterpartyRaw": "Neha Ver",
+      "refNo": "338120597764",
+      "txnTime": "2026-07-31T08:19:40+05:30",
+      "balanceAfterPaise": null
+    },
+    "templateId": "axis.sms.upi"
+  }
+}

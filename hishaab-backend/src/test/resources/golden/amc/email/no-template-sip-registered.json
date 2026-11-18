@@ -1,0 +1,13 @@
+{
+  "input": {
+    "source": "EMAIL",
+    "sender": "thetamf@camsonline.com",
+    "body": "SIP Registration Confirmation - Theta Mutual Fund\n\nDear Investor,\n\nGreetings from Theta Mutual Fund.\n\nWe wish to confirm that your Systematic Investment Plan (SIP) submitted under folio no.12121212 has been registered with the following details:\n\nScheme Name\tTheta Multicap Fund Regular-Gr\nFolio No.\t12121212\nAmount\t1000\nStart Date\t05-OCT-25\nEnd Date\t05-OCT-55\nFrequency\tOnce a Month\nBank Name\tState Bank of India\nAccount No.\t00000000000",
+    "receivedAtMs": 1757008860000
+  },
+  "expected": {
+    "class": "MANDATE_REMINDER",
+    "fields": null,
+    "templateId": null
+  }
+}

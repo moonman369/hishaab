@@ -43,7 +43,7 @@ class SettingsIT extends IntegrationTest {
         assertThat(response.statusCode()).isEqualTo(200);
         assertThat(json(response)).isEqualTo(JSON.readTree("""
                 {"scan.cron":"0 0 22 * * *","scan.zone":"Asia/Kolkata","scan.serverDelayMinutes":15,
-                 "senders.allowlist":[],"match.smsEmailWindowMinutes":180,"ai.categoryConfidenceMin":0.80,
+                 "senders.allowlist":["*"],"match.smsEmailWindowMinutes":180,"ai.categoryConfidenceMin":0.80,
                  "backfill.days":31}"""));
     }
 
@@ -52,7 +52,7 @@ class SettingsIT extends IntegrationTest {
         assertThat(settings.scanCron()).isEqualTo("0 0 22 * * *");
         assertThat(settings.scanZone()).isEqualTo(ZoneId.of("Asia/Kolkata"));
         assertThat(settings.scanServerDelayMinutes()).isEqualTo(15);
-        assertThat(settings.senderAllowlist()).isEmpty();
+        assertThat(settings.senderAllowlist()).containsExactly("*");
         assertThat(settings.matchSmsEmailWindowMinutes()).isEqualTo(180);
         assertThat(settings.aiCategoryConfidenceMin()).isEqualTo(0.80);
         assertThat(settings.backfillDays()).isEqualTo(31);
@@ -111,7 +111,7 @@ class SettingsIT extends IntegrationTest {
 
         assertThat(response.statusCode()).isEqualTo(400);
         assertThat(json(response).path("code").asString()).isEqualTo("INVALID_SETTING_VALUE");
-        assertThat(settings.senderAllowlist()).isEmpty();
+        assertThat(settings.senderAllowlist()).containsExactly("*");
     }
 
     @Test

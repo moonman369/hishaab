@@ -1,0 +1,22 @@
+{
+  "input": {
+    "source": "SMS",
+    "sender": "VM-SBIUPI-S",
+    "body": "Dear UPI user A/C X4092 debited by 75.5 on date 5Nov26 trf to Auto  Stand Refno 630099887766. If not u? call 1800000000. -SBI",
+    "receivedAtMs": 1793846400000
+  },
+  "expected": {
+    "class": "TRANSACTION",
+    "fields": {
+      "amountPaise": 7550,
+      "direction": "DR",
+      "accountLast4": "4092",
+      "channel": "UPI",
+      "counterpartyRaw": "Auto Stand",
+      "refNo": "630099887766",
+      "txnTime": "2026-11-05T08:10:00+05:30",
+      "balanceAfterPaise": null
+    },
+    "templateId": "sbi.sms.upi_debit"
+  }
+}

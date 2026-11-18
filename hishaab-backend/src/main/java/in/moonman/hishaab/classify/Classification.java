@@ -15,12 +15,12 @@ public record Classification(MessageClass messageClass, String reason) {
     }
 
     /**
-     * R-012-4: {@code TRANSACTION} and {@code UNKNOWN} → {@code CLASSIFIED} (processing continues);
-     * {@code FAILED_TXN} → {@code FAILED}; everything else → {@code IGNORED}.
+     * R-012-4: {@code TRANSACTION}, {@code INVESTMENT_CONFIRMATION} and {@code UNKNOWN} → {@code CLASSIFIED}
+     * (processing continues); {@code FAILED_TXN} → {@code FAILED}; everything else → {@code IGNORED}.
      */
     public RawStatus rawStatus() {
         return switch (messageClass) {
-            case TRANSACTION, UNKNOWN -> RawStatus.CLASSIFIED;
+            case TRANSACTION, INVESTMENT_CONFIRMATION, UNKNOWN -> RawStatus.CLASSIFIED;
             case FAILED_TXN -> RawStatus.FAILED;
             case OTP, PROMO, MANDATE_REMINDER, BALANCE_ONLY, STATEMENT -> RawStatus.IGNORED;
         };

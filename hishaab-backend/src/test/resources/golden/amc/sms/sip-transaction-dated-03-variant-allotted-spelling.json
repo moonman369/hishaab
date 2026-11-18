@@ -1,0 +1,22 @@
+{
+  "input": {
+    "source": "SMS",
+    "sender": "VM-EPSIMF-S",
+    "body": "Dear Investor, Your SIP transaction dated 15/11/2026 in EPS Flexi Cap Fund - Reg Gr for Rs.500 under folio number 900000333444 is processed and units 4.2 are allotted @ NAV of Rs. 119.0.Epsilon MF",
+    "receivedAtMs": 1794817800000
+  },
+  "expected": {
+    "class": "INVESTMENT_CONFIRMATION",
+    "fields": {
+      "amountPaise": 50000,
+      "direction": "DR",
+      "accountLast4": null,
+      "channel": "OTHER",
+      "counterpartyRaw": "EPS Flexi Cap Fund - Reg Gr",
+      "refNo": "900000333444",
+      "txnTime": "2026-11-15T14:00:00+05:30",
+      "balanceAfterPaise": null
+    },
+    "templateId": "amc.sms.sip_transaction_dated"
+  }
+}

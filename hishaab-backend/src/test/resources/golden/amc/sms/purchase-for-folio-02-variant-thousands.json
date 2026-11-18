@@ -1,0 +1,22 @@
+{
+  "input": {
+    "source": "SMS",
+    "sender": "JM-BETAMF-S",
+    "body": "Your Purchase of Rs.10,000.00 for folio 7000456/01 in Beta Liquid Fund-Reg-Growth is processed at NAV 2850.1 - Team Beta MF",
+    "receivedAtMs": 1794288600000
+  },
+  "expected": {
+    "class": "INVESTMENT_CONFIRMATION",
+    "fields": {
+      "amountPaise": 1000000,
+      "direction": "DR",
+      "accountLast4": null,
+      "channel": "OTHER",
+      "counterpartyRaw": "Beta Liquid Fund-Reg-Growth",
+      "refNo": "7000456",
+      "txnTime": "2026-11-10T11:00:00+05:30",
+      "balanceAfterPaise": null
+    },
+    "templateId": "amc.sms.purchase_for_folio"
+  }
+}

@@ -38,12 +38,12 @@ public abstract class IntegrationTest {
     @Autowired
     protected JdbcTemplate jdbc;
 
-    /** Puts every setting back to its V2 migration default. Call after tests that change settings. */
+    /** Puts every setting back to its migration default (V2, allowlist from V5). Call after tests that change settings. */
     protected void restoreDefaultSettings() {
         jdbc.update("""
                 UPDATE settings s SET value = d.value::jsonb, updated_at = now()
                 FROM (VALUES ('scan.cron', '"0 0 22 * * *"'), ('scan.zone', '"Asia/Kolkata"'),
-                             ('scan.serverDelayMinutes', '15'), ('senders.allowlist', '[]'),
+                             ('scan.serverDelayMinutes', '15'), ('senders.allowlist', '["*"]'),
                              ('match.smsEmailWindowMinutes', '180'), ('ai.categoryConfidenceMin', '0.80'),
                              ('backfill.days', '31')) AS d(key, value)
                 WHERE s.key = d.key""");

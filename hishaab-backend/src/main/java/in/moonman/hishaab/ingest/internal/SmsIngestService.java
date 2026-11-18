@@ -114,8 +114,9 @@ public class SmsIngestService {
         if (!SmsId.of(sms.sender(), sms.body(), sms.receivedAtMs()).equals(sms.id())) { // R-011-2
             return "HASH_MISMATCH";
         }
-        boolean allowed = SenderIds.middlePart(sms.sender()).map(allowlist::contains).orElse(false);
-        if (!allowed) { // R-011-3
+        boolean allowed = allowlist.contains(SettingsService.ALLOW_ALL_SENDERS)
+                || SenderIds.middlePart(sms.sender()).map(allowlist::contains).orElse(false);
+        if (!allowed) { // R-011-3; "*" accepts every sender (the worker filters, HLD §5.7)
             return "SENDER_NOT_ALLOWED";
         }
         return null;

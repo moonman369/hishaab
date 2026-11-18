@@ -1,0 +1,22 @@
+{
+  "input": {
+    "source": "SMS",
+    "sender": "AD-SBIINB-S",
+    "body": "Dear SBI User, your A/c X4092 - credited by Rs.300 on 3Nov26 transfer from Priya  S Ref No 630123123123 -SBI",
+    "receivedAtMs": 1793669400000
+  },
+  "expected": {
+    "class": "TRANSACTION",
+    "fields": {
+      "amountPaise": 30000,
+      "direction": "CR",
+      "accountLast4": "4092",
+      "channel": "OTHER",
+      "counterpartyRaw": "Priya S",
+      "refNo": "630123123123",
+      "txnTime": "2026-11-03T07:00:00+05:30",
+      "balanceAfterPaise": null
+    },
+    "templateId": "sbi.sms.credit"
+  }
+}

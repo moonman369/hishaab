@@ -1,0 +1,13 @@
+{
+  "input": {
+    "source": "EMAIL",
+    "sender": "alerts@axis.bank.in",
+    "body": "Term deposit has been successfully closed\n\n04-11-2026\n\nDear Customer,\n\nThank you for banking with us.\n\nYour Axis Bank Term Deposit A/c no. XXXX5521 has been successfully closed as per the request and the proceeds of the term deposit have been credited to your repayment  account.\n\nAlways open to help you.",
+    "receivedAtMs": 1793766780000
+  },
+  "expected": {
+    "class": "UNKNOWN",
+    "fields": null,
+    "templateId": null
+  }
+}

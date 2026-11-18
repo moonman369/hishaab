@@ -1,0 +1,22 @@
+{
+  "input": {
+    "source": "SMS",
+    "sender": "AD-DELTMF-S",
+    "body": "Your SIP Purchase in Folio 41000022/07 under Delta Mid Cap Fund-Growth for Rs. 999.95 has been processed at the NAV of 203.751 for 4.908 units and 05-Nov-2026. Your smart statement https://example.invalid/d/Ab12. Enter your PAN as the password. Sincerely, DELTAMF",
+    "receivedAtMs": 1793936520000
+  },
+  "expected": {
+    "class": "INVESTMENT_CONFIRMATION",
+    "fields": {
+      "amountPaise": 99995,
+      "direction": "DR",
+      "accountLast4": null,
+      "channel": "OTHER",
+      "counterpartyRaw": "Delta Mid Cap Fund-Growth",
+      "refNo": "41000022",
+      "txnTime": "2026-11-05T09:12:00+05:30",
+      "balanceAfterPaise": null
+    },
+    "templateId": "amc.sms.sip_purchase_in_folio_under"
+  }
+}

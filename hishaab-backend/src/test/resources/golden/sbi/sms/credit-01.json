@@ -1,0 +1,22 @@
+{
+  "input": {
+    "source": "SMS",
+    "sender": "AD-SBIINB-S",
+    "body": "Dear SBI User, your A/c X4092-credited by Rs.2.00 on 19Jun26 transfer from Play Rewards Ref No 917000222333 -SBI",
+    "receivedAtMs": 1781847000000
+  },
+  "expected": {
+    "class": "TRANSACTION",
+    "fields": {
+      "amountPaise": 200,
+      "direction": "CR",
+      "accountLast4": "4092",
+      "channel": "OTHER",
+      "counterpartyRaw": "Play Rewards",
+      "refNo": "917000222333",
+      "txnTime": "2026-06-19T11:00:00+05:30",
+      "balanceAfterPaise": null
+    },
+    "templateId": "sbi.sms.credit"
+  }
+}

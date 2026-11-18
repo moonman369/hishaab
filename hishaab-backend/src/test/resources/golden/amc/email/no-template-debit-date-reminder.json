@@ -1,0 +1,13 @@
+{
+  "input": {
+    "source": "EMAIL",
+    "sender": "gammamf@camsonline.com",
+    "body": "SIP Debit Date Reminder\n\nDear Investor,\n\nGreetings from Gamma Mutual Fund!\n\nWe wish to inform that the SIP amount of Rs.1000 for installment dated 05-NOV-2026 under folio 55500011, Gamma Opportunities Fund Growth is due for debit from your STATE BANK OF INDIA account. Accordingly, your bank account will be debited for the said SIP installment. Please ensure you have adequate balance in your bank account(s) at least 1 business day before transaction date. Non availability of balance on the transaction date may lead to bounce charges from your respective bank.\n\nAccess our Digital Services Guidebook for instant, 24/7 self-service options, including downloading account statements and portfolio valuations.",
+    "receivedAtMs": 1793603220000
+  },
+  "expected": {
+    "class": "MANDATE_REMINDER",
+    "fields": null,
+    "templateId": null
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "input": {
+    "source": "SMS",
+    "sender": "AD-SBIINB-S",
+    "body": "Your UPI-Mandate for Rs.699.00 is successfully created towards StreamCo Pte.Ltd from A/c No: XXXXXX4092. UMN:0a1b2c3d4e5f60718293a4b5c6d7e8f9@ybl. If not you, kindly report on 18000000. -SBI",
+    "receivedAtMs": 1790825400000
+  },
+  "expected": {
+    "class": "MANDATE_REMINDER",
+    "fields": null,
+    "templateId": null
+  }
+}

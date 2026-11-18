@@ -1,0 +1,22 @@
+{
+  "input": {
+    "source": "SMS",
+    "sender": "AX-AXISBK-S",
+    "body": "INR  321.00  debited\nA/c no.  XX7311\n13-11-26,  21:18:26\nUPI/P2M/631000111222/QUICKBITE FOODS\nNot you? SMS BLOCKUPI Cust ID to 919000000000\nAxis Bank",
+    "receivedAtMs": 1794584920000
+  },
+  "expected": {
+    "class": "TRANSACTION",
+    "fields": {
+      "amountPaise": 32100,
+      "direction": "DR",
+      "accountLast4": "7311",
+      "channel": "UPI",
+      "counterpartyRaw": "QUICKBITE FOODS",
+      "refNo": "631000111222",
+      "txnTime": "2026-11-13T21:18:26+05:30",
+      "balanceAfterPaise": null
+    },
+    "templateId": "axis.sms.upi"
+  }
+}

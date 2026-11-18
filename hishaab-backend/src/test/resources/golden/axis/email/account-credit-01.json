@@ -1,0 +1,22 @@
+{
+  "input": {
+    "source": "EMAIL",
+    "sender": "alerts@axis.bank.in",
+    "body": "Credit transaction alert for Axis Bank A/c\n\n04-11-2026\n\nDear Asha Rao,\n\nThank you for banking with us.\n\nWe wish to inform you that your A/c no. XX7311 has been credited with INR 6513.00 on 04-11-2026 at 09:50:23 IST by MBB-TD/926000444555666/31-.\n\nTo check your available balance, please click here.\n\nShould you wish to reach us, please call 18000000000.\n\nAlways open to help you.\n\nRegards,\nAxis Bank Ltd.",
+    "receivedAtMs": 1793766420000
+  },
+  "expected": {
+    "class": "TRANSACTION",
+    "fields": {
+      "amountPaise": 651300,
+      "direction": "CR",
+      "accountLast4": "7311",
+      "channel": "OTHER",
+      "counterpartyRaw": "MBB-TD",
+      "refNo": "926000444555666",
+      "txnTime": "2026-11-04T09:50:23+05:30",
+      "balanceAfterPaise": null
+    },
+    "templateId": "axis.email.account_credit"
+  }
+}

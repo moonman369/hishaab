@@ -1,0 +1,22 @@
+{
+  "input": {
+    "source": "SMS",
+    "sender": "VK-ALPHMF-S",
+    "body": "Folio XXXXXXX1122 - Your SIP instalment of Rs. 2,499.88 towards Alpha Flexi Cap Fund - Direct Growth is processed. Units Allotted: 101.2. Regards, Alpha MF.",
+    "receivedAtMs": 1793937600000
+  },
+  "expected": {
+    "class": "INVESTMENT_CONFIRMATION",
+    "fields": {
+      "amountPaise": 249988,
+      "direction": "DR",
+      "accountLast4": null,
+      "channel": "OTHER",
+      "counterpartyRaw": "Alpha Flexi Cap Fund - Direct Growth",
+      "refNo": null,
+      "txnTime": "2026-11-06T09:30:00+05:30",
+      "balanceAfterPaise": null
+    },
+    "templateId": "amc.sms.folio_instalment_processed"
+  }
+}

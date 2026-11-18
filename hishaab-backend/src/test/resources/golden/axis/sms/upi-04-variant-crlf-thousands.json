@@ -1,0 +1,22 @@
+{
+  "input": {
+    "source": "SMS",
+    "sender": "AX-AXISBK-S",
+    "body": "INR 1,249.50 debited\r\nA/c no. XX7311\r\n02-11-26, 09:05:11\r\nUPI/P2M/700012345678/BLUE BOTTLE CAFE\r\nNot you? SMS BLOCKUPI Cust ID to 919000000000\r\nAxis Bank",
+    "receivedAtMs": 1793590520000
+  },
+  "expected": {
+    "class": "TRANSACTION",
+    "fields": {
+      "amountPaise": 124950,
+      "direction": "DR",
+      "accountLast4": "7311",
+      "channel": "UPI",
+      "counterpartyRaw": "BLUE BOTTLE CAFE",
+      "refNo": "700012345678",
+      "txnTime": "2026-11-02T09:05:11+05:30",
+      "balanceAfterPaise": null
+    },
+    "templateId": "axis.sms.upi"
+  }
+}

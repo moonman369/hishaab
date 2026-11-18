@@ -1,0 +1,22 @@
+{
+  "input": {
+    "source": "SMS",
+    "sender": "AX-AXISBK-S",
+    "body": "INR 99.00 debited from A/c no. XX207311 on STREAMFLIX  01-10-2026 00:00:05 IST. Not you? SMS BLOCKCARD XX8820 to +919000000000 - Axis Bank",
+    "receivedAtMs": 1790793020000
+  },
+  "expected": {
+    "class": "TRANSACTION",
+    "fields": {
+      "amountPaise": 9900,
+      "direction": "DR",
+      "accountLast4": "7311",
+      "channel": "CARD",
+      "counterpartyRaw": "STREAMFLIX",
+      "refNo": null,
+      "txnTime": "2026-10-01T00:00:05+05:30",
+      "balanceAfterPaise": null
+    },
+    "templateId": "axis.sms.card_debit"
+  }
+}

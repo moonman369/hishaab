@@ -1,0 +1,22 @@
+{
+  "input": {
+    "source": "SMS",
+    "sender": "JD-AXISBK-T",
+    "body": "INR 60.00 debited\nA/c no. XX7311\n15-11-26, 20:02:20\nUPI/P2A/604417382915/MR. KARAN SETHI\nNot you? SMS BLOCKUPI Cust ID to 919000000000\nAxis Bank",
+    "receivedAtMs": 1794753151000
+  },
+  "expected": {
+    "class": "TRANSACTION",
+    "fields": {
+      "amountPaise": 6000,
+      "direction": "DR",
+      "accountLast4": "7311",
+      "channel": "UPI",
+      "counterpartyRaw": "MR. KARAN SETHI",
+      "refNo": "604417382915",
+      "txnTime": "2026-11-15T20:02:20+05:30",
+      "balanceAfterPaise": null
+    },
+    "templateId": "axis.sms.upi"
+  }
+}

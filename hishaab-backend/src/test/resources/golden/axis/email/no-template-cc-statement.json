@@ -1,0 +1,13 @@
+{
+  "input": {
+    "source": "EMAIL",
+    "sender": "cc.statements@axis.bank.in",
+    "body": "Your Axis Bank Example Credit Card ending XX87 - November 2026\n\nYour wait for lower interest rates on Instant Loan ends here! Limited time offer. Avail now\n\nDear Customer,\nPlease find enclosed your credit card statement for NOVEMBER 2026.\n\nTotal Amount Due INR\t2302.9 Dr\nMinimum Amount Due (INR)\t100 Dr\nPayment Due Date (DD-MM-YYYY)\t05/12/2026\n\nInterest will be applicable if your total amount due is not paid on or before the due date.",
+    "receivedAtMs": 1794892260000
+  },
+  "expected": {
+    "class": "STATEMENT",
+    "fields": null,
+    "templateId": null
+  }
+}
